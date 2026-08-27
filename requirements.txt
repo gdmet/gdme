@@ -1,0 +1,12 @@
+Flask>=3.0
+flask-cors>=4.0
+gunicorn>=21.2
+moviepy>=1.0.3
+imageio-ffmpeg>=0.0.9
+decorator>=4.0.2
+proglog>=0.1.10
+av>=18.0.0
+numpy>=2.0
+opencv-python-headless>=4.10
+Pillow>=11.0
+matplotlib>=3.7

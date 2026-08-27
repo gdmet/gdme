@@ -1,0 +1,3873 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>广东气象爱好者</title>
+  <!-- 地图库 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/styles/main.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- 图表库 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "SimSun", "宋体", serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* 全屏背景 */
+    .hero-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--background-image) center/cover no-repeat;
+      z-index: -1;
+    }
+
+    .hero-bg::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* 头部区域 */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      padding: 20px 40px;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+
+    .avatar-container {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      flex-shrink: 0;
+    }
+
+    /* 第二个头像容器 - 追风记录和详情页面显示 */
+    .avatar-container-secondary {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      flex-shrink: 0;
+      margin-left: 15px;
+      display: none; /* 默认隐藏，只在追风记录和详情页面显示 */
+    }
+
+    .avatar-container-secondary.show {
+      display: block;
+    }
+
+    .avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      border: 3px solid rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      object-fit: cover;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      margin-left: auto;
+    }
+
+    .nav-item {
+      position: relative;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 10px 15px;
+      transition: all 0.3s;
+      white-space: nowrap;
+    }
+
+    .nav-item:hover {
+      color: #e0f0ff;
+    }
+
+    .nav-item.active {
+      font-weight: bold;
+    }
+
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      min-width: 200px;
+      background: rgba(0, 0, 0, 0.85);
+      border-radius: 8px;
+      padding: 8px 0;
+      display: none;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .dropdown.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      display: block;
+      padding: 10px 20px;
+      color: white;
+      text-decoration: none;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #e0f0ff;
+    }
+
+    /* 主页内容 */
+    .main-content {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 120px 40px 60px;
+      text-align: center;
+    }
+
+    .title {
+      font-size: 48px;
+      color: #e8f4ff;
+      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+      margin-bottom: 40px;
+      letter-spacing: 4px;
+    }
+
+    .intro-container {
+      max-width: 800px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 15px;
+      padding: 30px 40px;
+      backdrop-filter: blur(5px);
+    }
+
+    .intro-text {
+      color: white;
+      font-size: 14px;
+      line-height: 2;
+      text-align: justify;
+      white-space: pre-line;
+    }
+
+    /* 追风记录页面 */
+    .chase-page {
+      display: none;
+      min-height: 100vh;
+      padding-top: 100px;
+      padding-bottom: 60px;
+    }
+
+    .chase-page.active {
+      display: block;
+    }
+
+    .chase-container {
+      display: flex;
+      gap: 20px;
+      padding: 0 30px;
+    }
+
+    .chase-left {
+      width: 260px;
+      flex-shrink: 0;
+    }
+
+    .legend-box {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+    }
+
+    .legend-title {
+      color: #e0f0ff;
+      font-size: 14px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .legend-item {
+      color: white;
+      font-size: 12px;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .chase-list-box {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      padding: 15px 20px;
+    }
+
+    .chase-list-title {
+      color: #e0f0ff;
+      font-size: 16px;
+      margin-bottom: 15px;
+      font-weight: bold;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 10px;
+    }
+
+    .chase-item {
+      color: white;
+      font-size: 12px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chase-item:last-child {
+      border-bottom: none;
+    }
+
+    .chase-year {
+      color: #a0d0ff;
+      font-weight: bold;
+      min-width: 40px;
+    }
+
+    .chase-name {
+      flex: 1;
+    }
+
+    .chase-mark {
+      font-size: 12px;
+    }
+
+    /* ========== 追风栏目展示区域 ========== */
+    .chase-right {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      padding: 25px;
+      min-height: 600px;
+    }
+
+    .chase-grid-title {
+      color: #e0f0ff;
+      font-size: 18px;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+
+    .chase-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .chase-card {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .chase-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .chase-card-image {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .chase-card-name {
+      padding: 12px;
+      text-align: center;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    /* ========== 追风详情页面 ========== */
+    .detail-page {
+      display: none;
+      min-height: 100vh;
+      background: #1a4a7a;
+    }
+
+    .detail-page.active {
+      display: block;
+    }
+
+    .detail-header {
+      padding: 100px 40px 30px;
+    }
+
+    .back-btn {
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 20px;
+      display: inline-block;
+      opacity: 0.8;
+    }
+
+    .back-btn:hover {
+      opacity: 1;
+    }
+
+    .detail-title {
+      font-size: 32px;
+      color: white;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+
+    .detail-subtitle {
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.9);
+      font-style: italic;
+    }
+
+    .detail-content {
+      display: flex;
+      padding: 0 40px 60px;
+      gap: 40px;
+    }
+
+    .detail-info {
+      flex: 1;
+    }
+
+    .detail-image-container {
+      flex: 1;
+    }
+
+    .detail-image {
+      width: 100%;
+      max-height: 500px;
+      object-fit: contain;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .info-section {
+      margin-bottom: 30px;
+    }
+
+    .info-label {
+      color: #ff6b6b;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .info-value {
+      color: #333;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px 15px;
+      border-radius: 6px;
+      min-height: 20px;
+    }
+
+    .info-note {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      margin-top: 30px;
+      font-style: italic;
+    }
+
+    /* 主页显示控制 */
+    .main-content.active {
+      display: flex;
+    }
+
+    .main-content.hidden {
+      display: none;
+    }
+
+    /* 响应式 */
+    @media (max-width: 1024px) {
+      .chase-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .header {
+        padding: 15px 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+
+      .nav {
+        gap: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .nav-item {
+        font-size: 14px;
+        padding: 8px 10px;
+      }
+
+      .title {
+        font-size: 28px;
+        letter-spacing: 2px;
+      }
+
+      .intro-container {
+        padding: 20px;
+        margin: 0 10px;
+      }
+
+      .intro-text {
+        font-size: 12px;
+      }
+
+      .chase-container {
+        flex-direction: column;
+        padding: 0 15px;
+      }
+
+      .chase-left {
+        width: 100%;
+      }
+
+      .chase-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .detail-content {
+        flex-direction: column;
+        padding: 0 20px 40px;
+      }
+    }
+
+    /* ========== 天气地图页面 ========== */
+    .weather-map-page {
+      display: none;
+      min-height: 100vh;
+      padding-top: 100px;
+    }
+
+    .weather-map-page.active {
+      display: block;
+    }
+
+    #weather-map {
+      width: 100%;
+      height: calc(100vh - 100px);
+      z-index: 1;
+    }
+
+    /* 天气标签 - 横杠样式，直接显示在地图上 */
+    .weather-label {
+      background: transparent;
+      padding: 2px 6px;
+      text-align: center;
+      font-size: 11px;
+      font-family: "SimSun", "宋体", serif;
+      text-shadow: 0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5);
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .weather-label:hover {
+      transform: scale(1.1);
+      text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 0 12px rgba(0,0,0,0.6);
+    }
+
+    .weather-label .wl-city {
+      font-weight: bold;
+      font-size: 12px;
+      color: #fff;
+      padding-right: 6px;
+    }
+
+    .weather-label .wl-icon {
+      font-size: 14px;
+    }
+
+    .weather-label .wl-temps {
+      font-size: 12px;
+    }
+
+    .weather-label .wl-high {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+
+    .weather-label .wl-low {
+      color: #3498db;
+      font-weight: bold;
+    }
+
+    .weather-label .wl-sep {
+      color: rgba(255,255,255,0.6);
+      margin: 0 2px;
+    }
+
+    .weather-label .wl-warning {
+      display: inline-block;
+      font-size: 10px;
+      color: #fff;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 4px;
+      font-weight: bold;
+      animation: warningPulse 1.5s ease-in-out infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes warningPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* 天气预报弹窗 - 重新设计 */
+    .weather-popup .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .weather-popup .leaflet-popup-content {
+      margin: 0;
+      padding: 0;
+      font-family: "SimSun", "宋体", serif;
+    }
+
+    .forecast-popup {
+      width: 320px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .popup-header {
+      background: linear-gradient(135deg, #1a4a7a, #2d6fa0);
+      color: white;
+      padding: 16px 18px;
+    }
+
+    .popup-header h3 {
+      font-size: 18px;
+      margin: 0 0 4px;
+    }
+
+    .popup-header .sub-info {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .popup-body {
+      padding: 12px 16px;
+    }
+
+    .popup-section {
+      margin-bottom: 12px;
+    }
+
+    .popup-section-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #1a4a7a;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+
+    .popup-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .popup-grid-item {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+
+    .popup-grid-item .label {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 2px;
+    }
+
+    .popup-grid-item .value {
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .popup-grid-item .value.warm { color: #e74c3c; }
+    .popup-grid-item .value.cold { color: #3498db; }
+    .popup-grid-item .value.wind { color: #27ae60; }
+
+    /* 未来预报行 */
+    /* 逐日预报卡片 */
+    .forecast-card {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      border: 1px solid #eee;
+    }
+    .forecast-card:last-child {
+      margin-bottom: 0;
+    }
+    .fc-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed #e0e0e0;
+    }
+    .fc-day {
+      width: 36px;
+      font-size: 12px;
+      color: #555;
+      font-weight: bold;
+    }
+    .fc-icon {
+      width: 24px;
+      text-align: center;
+      font-size: 16px;
+    }
+    .fc-desc {
+      flex: 1;
+      font-size: 11px;
+      color: #888;
+    }
+    .fc-temps {
+      font-size: 13px;
+      text-align: right;
+    }
+    .fc-high {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+    .fc-sep {
+      color: #ccc;
+      margin: 0 2px;
+    }
+    .fc-low {
+      color: #3498db;
+    }
+    .fc-body {
+      padding-top: 6px;
+    }
+    .fc-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 3px;
+    }
+    .fc-row:last-child {
+      margin-bottom: 0;
+    }
+    .fc-item {
+      font-size: 11px;
+      color: #666;
+      flex: 1;
+      white-space: nowrap;
+    }
+
+    .chart-container {
+      width: 100%;
+      height: 220px;
+      margin-top: 8px;
+      padding: 4px 0;
+    }
+
+    .chart-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* 空气质量 */
+    .aqi-section {
+      background: #f0f7ff;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .aqi-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .aqi-item {
+      text-align: center;
+      flex: 1;
+    }
+
+    .aqi-item .aqi-label {
+      font-size: 11px;
+      color: #888;
+    }
+
+    .aqi-item .aqi-value {
+      font-size: 15px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .aqi-item .aqi-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      color: white;
+    }
+      min-width: 280px;
+      max-width: 350px;
+    }
+
+    .forecast-popup .popup-header {
+      background: #1a4a7a;
+      color: white;
+      padding: 12px 15px;
+      margin: -12px -12px 10px;
+      border-radius: 8px 8px 0 0;
+      text-align: center;
+    }
+
+    .forecast-popup .popup-header h3 {
+      font-size: 18px;
+      margin: 0;
+    }
+
+    .forecast-popup .popup-header .current-temp {
+      font-size: 32px;
+      font-weight: bold;
+    }
+
+    .forecast-popup .popup-header .weather-desc {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .forecast-popup .weather-detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .forecast-popup .detail-item {
+      background: #f5f5f5;
+      border-radius: 6px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .forecast-popup .detail-item .label {
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 3px;
+    }
+
+    .forecast-popup .detail-item .value {
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .forecast-popup .forecast-days {
+      border-top: 1px solid #eee;
+      padding-top: 10px;
+    }
+
+    .forecast-popup .forecast-days .day-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+    }
+
+    .forecast-popup .forecast-days .day-row:last-child {
+      border-bottom: none;
+    }
+
+    .forecast-popup .forecast-days .day-name {
+      width: 40px;
+      color: #555;
+    }
+
+    .forecast-popup .forecast-days .day-icon {
+      font-size: 18px;
+      width: 30px;
+      text-align: center;
+    }
+
+    .forecast-popup .forecast-days .day-temp {
+      color: #333;
+    }
+
+    .forecast-popup .forecast-days .day-temp .high {
+      color: #e74c3c;
+    }
+
+    .forecast-popup .forecast-days .day-temp .low {
+      color: #3498db;
+    }
+
+    .forecast-popup .air-quality {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+
+    .forecast-popup .air-quality .aqi-title {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 5px;
+    }
+
+    .forecast-popup .air-quality .aqi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .forecast-popup .air-quality .aqi-item {
+      background: #f5f5f5;
+      border-radius: 4px;
+      padding: 4px 8px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      padding: 0;
+    }
+
+    .leaflet-popup-content {
+      margin: 12px;
+      font-family: "SimSun", "宋体", serif;
+    }
+
+    .leaflet-popup-close-button {
+      color: white !important;
+      opacity: 0.8;
+    }
+
+    /* 地图顶部额外控制 */
+    .map-extra-controls {
+      position: absolute;
+      bottom: 70px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+      background: rgba(0,0,0,0.55);
+      padding: 6px 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+      font-family: "SimSun", "宋体", serif;
+    }
+    .map-extra-controls label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s;
+    }
+    .map-extra-controls label:hover {
+      color: #fff;
+    }
+    .map-extra-controls input[type="checkbox"] {
+      accent-color: #f39c12;
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    .map-extra-controls .user-forecast-btn {
+      padding: 2px 10px;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 4px;
+      background: transparent;
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: "SimSun", "宋体", serif;
+    }
+    .map-extra-controls .user-forecast-btn:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .map-extra-controls .user-forecast-btn.active {
+      background: rgba(231,76,60,0.5);
+      color: #fff;
+      border-color: #e74c3c;
+    }
+    /* 地图切换按钮 */
+    .map-toggle-panel {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      gap: 6px;
+      background: rgba(0,0,0,0.65);
+      padding: 8px 12px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    }
+    .map-toggle-btn {
+      padding: 7px 16px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      background: transparent;
+      color: rgba(255,255,255,0.5);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-family: "SimSun", "宋体", serif;
+      white-space: nowrap;
+    }
+    .map-toggle-btn:hover {
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.8);
+    }
+    .map-toggle-btn.active {
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border-color: rgba(255,255,255,0.5);
+      box-shadow: 0 0 8px rgba(255,255,255,0.1);
+    }
+    .map-toggle-btn.active-forecast {
+      background: rgba(52,152,219,0.35);
+      border-color: rgba(52,152,219,0.6);
+    }
+    .map-toggle-btn.active-warning {
+      background: rgba(231,76,60,0.35);
+      border-color: rgba(231,76,60,0.6);
+    }
+    .map-toggle-btn.active-typhoon {
+      background: rgba(155,89,182,0.35);
+      border-color: rgba(155,89,182,0.6);
+    }
+
+    /* ========== 线上天气地图页面 ========== */
+    .online-weather-page {
+      display: none;
+      min-height: 100vh;
+      padding-top: 100px;
+      background: #0a1628;
+    }
+    .online-weather-page.active {
+      display: block;
+    }
+    .online-weather-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .online-weather-header {
+      font-size: 28px;
+      font-weight: bold;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 30px;
+      font-family: "SimSun", "宋体", serif;
+      text-shadow: 0 0 20px rgba(100,180,255,0.3);
+    }
+    .ow-satellite-card {
+      margin-bottom: 30px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      position: relative;
+      min-height: 33vh;
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      background-size: cover;
+      background-position: center;
+    }
+    .ow-satellite-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 1;
+    }
+    .ow-satellite-link {
+      position: relative;
+      z-index: 2;
+      display: inline-block;
+      padding: 16px 40px;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+      font-family: "SimSun", "宋体", serif;
+      text-decoration: none;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.25);
+      backdrop-filter: blur(4px);
+      transition: all 0.3s;
+      text-align: center;
+      min-width: 320px;
+    }
+    .ow-satellite-link:hover {
+      background: rgba(255,255,255,0.15);
+      border-color: rgba(255,255,255,0.5);
+      transform: scale(1.03);
+    }
+    .ow-satellite-link small {
+      display: block;
+      font-size: 13px;
+      font-weight: normal;
+      color: rgba(255,255,255,0.6);
+      margin-top: 4px;
+    }
+    .ow-item {
+      margin-bottom: 30px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .ow-label {
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #8ab4f8;
+      font-family: "SimSun", "宋体", serif;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .ow-iframe {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: none;
+      display: block;
+    }
+    .ow-iframe-wrap {
+      position: relative;
+      overflow: hidden;
+    }
+    .ow-iframe-wrap .ow-iframe {
+      transition: transform 0.2s ease;
+      transform-origin: top left;
+    }
+    .ow-zoom-controls {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+    }
+    .ow-zoom-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.25);
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(6px);
+      transition: background 0.2s;
+      user-select: none;
+    }
+    .ow-zoom-btn:hover {
+      background: rgba(0,0,0,0.75);
+    }
+    .ow-zoom-level {
+      position: absolute;
+      bottom: 62px;
+      right: 16px;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: "SimSun", "宋体", serif;
+      backdrop-filter: blur(6px);
+      display: none;
+    }
+    .ow-zoom-level.show {
+      display: block;
+    }
+    .ow-vpn-tip {
+      padding: 8px 20px;
+      font-size: 13px;
+      color: #ffa726;
+      background: rgba(255,167,38,0.1);
+      font-family: "SimSun", "宋体", serif;
+      border-top: 1px solid rgba(255,167,38,0.15);
+      text-align: center;
+    }
+    .ow-fallback-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 50px 20px;
+      min-height: 200px;
+      text-align: center;
+    }
+    .ow-fallback-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    .ow-fallback-title {
+      font-size: 22px;
+      font-weight: bold;
+      color: #fff;
+      margin-bottom: 8px;
+      font-family: "SimSun", "宋体", serif;
+    }
+    .ow-fallback-desc {
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 20px;
+      font-family: "SimSun", "宋体", serif;
+    }
+    .ow-fallback-btn {
+      display: inline-block;
+      padding: 12px 28px;
+      background: linear-gradient(135deg, #1a73e8, #4285f4);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      text-decoration: none;
+      transition: all 0.2s;
+      font-family: "SimSun", "宋体", serif;
+    }
+    .ow-fallback-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(66,133,244,0.4);
+    }
+    .ow-fallback-note {
+      margin-top: 14px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.35);
+      font-family: "SimSun", "宋体", serif;
+    }
+
+    /* 预警信息 */
+    .alert-info {
+      margin-top: 10px;
+      padding: 8px 10px;
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .alert-info .alert-title {
+      color: #856404;
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+
+    .alert-info .alert-text {
+      color: #856404;
+    }
+
+    /* ========== 台风动画生成页面 ========== */
+    .typhoon-animation-page {
+      display: none;
+      min-height: 100vh;
+      padding-top: 100px;
+      padding-bottom: 60px;
+      background: linear-gradient(135deg, #0a1628 0%, #1a2a4a 100%);
+    }
+    .typhoon-animation-page.active {
+      display: block;
+    }
+    .ta-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .ta-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .ta-title {
+      font-size: 36px;
+      color: #fff;
+      margin-bottom: 10px;
+      font-family: "SimSun", "宋体", serif;
+      text-shadow: 0 0 20px rgba(100,180,255,0.3);
+    }
+    .ta-subtitle {
+      font-size: 16px;
+      color: rgba(255,255,255,0.7);
+      font-family: "SimSun", "宋体", serif;
+    }
+    .ta-content {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 30px;
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+    }
+    .ta-section {
+      margin-bottom: 30px;
+    }
+    .ta-section-title {
+      font-size: 20px;
+      color: #8ab4f8;
+      margin-bottom: 20px;
+      font-family: "SimSun", "宋体", serif;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 10px;
+    }
+    .ta-upload-area {
+      border: 2px dashed rgba(255,255,255,0.3);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      background: rgba(255,255,255,0.02);
+    }
+    .ta-upload-area:hover {
+      border-color: rgba(138,180,248,0.6);
+      background: rgba(138,180,248,0.05);
+    }
+    .ta-upload-area.dragover {
+      border-color: #8ab4f8;
+      background: rgba(138,180,248,0.1);
+    }
+    .ta-upload-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+    .ta-upload-text {
+      font-size: 18px;
+      color: #fff;
+      margin-bottom: 8px;
+      font-family: "SimSun", "宋体", serif;
+    }
+    .ta-upload-hint {
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+      font-family: "SimSun", "宋体", serif;
+    }
+    .ta-file-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 20px;
+      background: rgba(138,180,248,0.1);
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+    .ta-file-name {
+      color: #8ab4f8;
+      font-size: 16px;
+      font-family: "SimSun", "宋体", serif;
+    }
+    .ta-btn {
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: "SimSun", "宋体", serif;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .ta-btn-primary {
+      background: linear-gradient(135deg, #1a73e8, #4285f4);
+      color: #fff;
+    }
+    .ta-btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(66,133,244,0.4);
+    }
+    .ta-btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .ta-btn-secondary {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .ta-btn-secondary:hover {
+      background: rgba(255,255,255,0.2);
+    }
+    .ta-features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+    }
+    .ta-feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .ta-feature-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .ta-feature-text {
+      font-size: 14px;
+      color: rgba(255,255,255,0.8);
+      font-family: "SimSun", "宋体", serif;
+      line-height: 1.5;
+    }
+    .ta-progress-bar {
+      width: 100%;
+      height: 20px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+    .ta-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #1a73e8, #4285f4);
+      border-radius: 10px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+    .ta-progress-text {
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      font-family: "SimSun", "宋体", serif;
+    }
+    .ta-result-info {
+      text-align: center;
+      padding: 20px;
+    }
+    .ta-result-message {
+      font-size: 16px;
+      color: #4caf50;
+      margin-bottom: 20px;
+      font-family: "SimSun", "宋体", serif;
+    }
+    .ta-error-message {
+      font-size: 14px;
+      color: #f44336;
+      padding: 15px;
+      background: rgba(244,67,54,0.1);
+      border-radius: 8px;
+      border: 1px solid rgba(244,67,54,0.3);
+      font-family: "SimSun", "宋体", serif;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    @media (max-width: 768px) {
+      .ta-features {
+        grid-template-columns: 1fr;
+      }
+      .ta-title {
+        font-size: 24px;
+      }
+      .ta-content {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ========================================================================
+     配置区域 - 在这里修改背景图、头像和追风栏目数据
+     ======================================================================== -->
+<script>
+// ==================== 基础配置 ====================
+
+// 【背景图链接】修改这里的URL更换主页背景图
+const BACKGROUND_IMAGE_URL = '主页画面.png';
+
+// 【头像链接】修改这里的URL更换头像，留空则显示默认"粤气爱"文字
+const AVATAR_IMAGE_URL = '广东气象爱好者logo.png';
+
+// 【第二个头像链接】用于追风记录和详情页面，留空则显示默认"追风者"文字
+const AVATAR_SECONDARY_URL = 'SKVX兆logo.png';
+
+// 【第三个头像链接】用于工具页面（台风动画生成），留空则显示默认"开发者 3 号"文字
+const AVATAR_TERTIARY_URL = '';
+
+// ==================== 追风栏目数据配置 ====================
+/* 
+   如何添加新的追风栏目：
+   复制下面的一条记录，修改对应的内容即可。
+   每个字段都有详细注释说明。
+   
+   示例：
+   {
+     id: 'yagi-2024',                    // 唯一标识，用于页面跳转，建议用"台风名-年份"
+     year: '2024',                       // 年份
+     name: '摩羯',                       // 台风名称（中文）
+     nameEn: 'YAGI',                     // 台风名称（英文，用于显示）
+     image: '图片URL',                    // 栏目封面图片
+     subtitle: '一句话描述',              // 详情页副标题
+     location: '地点内容',               // 地点
+     date: '日期',                       // 日期
+     intensity: '强度数据',              // 强度
+     partner: '搭档名字',                // 搭档
+     note: '备注信息',                   // 底部备注（可选）
+     detailImage: '详情页图片URL'        // 详情页右侧大图
+   }
+*/
+
+const CHASE_DATA = [
+  // ==================== 2026年追风记录 ====================
+  {
+    id: 'hongxia-2026',                    // 【唯一ID】用于页面跳转
+    year: '2026',                            // 【年份】
+    name: '红霞',                          // 【台风名称-中文】
+    nameEn: '红霞',                     // 【台风名称-英文】
+    image: '台风红霞云图.png',   // 【栏目封面图片URL】
+    subtitle: '追逐惠州最强台，第一次外地追风尝试',                   // 【详情页副标题】一句话描述
+    location: '广东深汕特别合作区百安半岛',                 // 【地点】
+    date: '2026.7.25-26',                    // 【日期】
+    intensity: '强台风  45',                    // 【强度】
+    partner: 'solo',                    // 【搭档】
+    note: '第一次尝试在外地追击台风，成功进入台风红霞眼墙经历最大风，测到最低气压980百帕。体感是我追过所有台风中最强的，和山竹持平甚至略超，台风过后树木电线杆大量折断倒了一排，风暴潮摧毁了海堤，玻璃破碎广告牌散落，这种级别的风毁也几乎是第一次见，我们损失也很惨重。追风记录随后发布',                // 【备注】底部显示
+    detailImage: '台风红霞云图.png'  // 【详情页右侧图片URL】
+  },
+  // ==================== 2025年追风记录 ====================
+  {
+    id: 'huajiasha-2025',                    // 【唯一ID】用于页面跳转
+    year: '2025',                            // 【年份】
+    name: '桦加沙',                          // 【台风名称-中文】
+    nameEn: '桦加沙',                     // 【台风名称-英文】
+    image: '台风桦加沙追击云图.jpg',   // 【栏目封面图片URL】
+    subtitle: '追逐珠三角七年来最强台',                   // 【详情页副标题】一句话描述
+    location: '广东深圳盐田区海鲜街，海山；罗湖区',                 // 【地点】
+    date: '2025.9.24',                    // 【日期】
+    intensity: '强台风  38',                    // 【强度】
+    partner: 'chasing1713lsr',                    // 【搭档】
+    note: '截至目前最佳的一次完整追击记录。详细记录台风桦加沙来临前后的天气状况，台风来临前的闷热，风雨，风暴潮，风毁以及完整数据。     追风记录：https://www.bilibili.com/video/BV1m5xTzjEGv/?spm_id_from=333.1387.upload.video_card.click&vd_source=5d9709f0600f3a17a5e4714e625f2bb4',                // 【备注】底部显示
+    detailImage: '台风桦加沙追击云图.jpg'  // 【详情页右侧图片URL】
+  },
+  {
+    id: 'taba-2025',
+    year: '2025',
+    name: '塔巴',
+    nameEn: '塔巴',
+    image: '台风塔巴追击云图.jpg',
+    subtitle: '一次意外的惊喜',
+    location: '广东深圳盐田区海鲜街，海山',
+    date: '2025.9.8',
+    intensity: '台风  30',
+    partner: 'KST',
+    note: '弥补错过台风韦帕的遗憾，风雨超预期，甚至有瓦片吹飞。追风记录：https://www.bilibili.com/video/BV1L7HfzaE1b/?spm_id_from=333.1387.upload.video_card.click&vd_source=5d9709f0600f3a17a5e4714e625f2bb4',
+    detailImage: '台风塔巴追击云图.jpg'
+  },
+  {
+    id: 'Yagi-2024',
+    year: '2024',
+    name: '摩羯',
+    nameEn: '摩羯',
+    image: '台风摩羯追击云图.jpg',
+    subtitle: '追击中国最强秋台风外围风雨',
+    location: '广东深圳盐田区海鲜街，海山，梧桐山',
+    date: '2024.9.6',
+    intensity: '超强台风 23',
+    partner: '小☀🌧',
+    note: '追风记录：https://www.bilibili.com/video/BV1frpzeoEvS?spm_id_from=333.788.videopod.sections&vd_source=5d9709f0600f3a17a5e4714e625f2bb4',
+    detailImage: '台风摩羯追击云图.jpg'
+  },
+  
+  // ==================== 2024年追风记录 ====================
+  {
+    id: 'maklisi-2024',
+    year: '2024',
+    name: '马力斯',
+    nameEn: '马力斯',
+    image: '台风马力斯追击云图.jpg',
+    subtitle: '坚持才能获得胜利',
+    location: '广东深圳宝安区西乡，南山区深圳湾公园',
+    date: '2024.6.1',
+    intensity: '热带风暴 24',
+    partner: '言.',
+    note: '西乡追击时大太阳，下午转移到深圳湾才记录到可观风雨。 追风记录：https://www.bilibili.com/video/BV1NM4m167NE?spm_id_from=333.788.videopod.sections&vd_source=5d9709f0600f3a17a5e4714e625f2bb4',
+    detailImage: '台风马力斯追击云图.jpg'
+  },
+
+// ==================== 2023年追风记录 ====================
+
+  {
+    id: 'Koinu-2023',
+    year: '2023',
+    name: '小犬',
+    nameEn: '小犬',
+    image: '台风小犬追击云图.jpg',
+    subtitle: '风雨潇潇',
+    location: '广东深圳罗湖区',
+    date: '2023.10.7-10.8',
+    intensity: '强台风 26',
+    partner: 'KST',
+    note: '超预期北抬携冷空气带来凄风冷雨。追风记录：https://www.bilibili.com/video/BV1Fu411T7TZ?spm_id_from=333.788.videopod.sections&vd_source=5d9709f0600f3a17a5e4714e625f2bb4',
+    detailImage: '台风小犬追击云图.jpg'
+  },
+{
+    id: 'Haikui-2023',
+    year: '2023',
+    name: '海葵',
+    nameEn: '海葵',
+    image: '台风海葵追击云图.jpg',
+    subtitle: '台风海葵残余云系带来破纪录极端强降雨',
+    location: '广东深圳罗湖区',
+    date: '2023.9.7-9.8',
+    intensity: '热带风暴 15',
+    partner: 'solo',
+    note: '从下午开始，深圳香港乃至整个珠三角就持续遭受台风海葵列车云团袭击，暴雨一直持续到第二天下午。局地24h降雨量超过500mm，香港甚至有地方超过800mm。那一夜深圳多条交通干道瘫痪，第二天各种泡坏的车辆横七竖八停在路面上等待救援，东门商铺一片狼藉，到处都是泥水和散落的垃圾',
+    detailImage: '台风海葵追击云图.jpg'
+  },
+  
+  
+  {
+    id: 'Saola-2023',
+    year: '2023',
+    name: '苏拉',
+    nameEn: '苏拉',
+    image: '台风苏拉追击云图.jpg',
+    subtitle: '暴风雨中的挑战和狂热',
+    location: '广东深圳盐田区海山，罗湖区',
+    date: '2023.9.1',
+    intensity: '超强台风  36',
+    partner: '小☀🌈🌧，风行云羽',
+    note: '几年空窗后的第一次激情。追风记录：https://www.bilibili.com/video/BV1T8411v7MN?spm_id_from=333.788.videopod.sections&vd_source=5d9709f0600f3a17a5e4714e625f2bb4',
+    detailImage: '台风苏拉追击云图.jpg'
+  },
+
+{
+    id: 'Talim-2023',
+    year: '2023',
+    name: '泰利',
+    nameEn: '泰利',
+    image: '台风泰利追击云图.jpg',
+    subtitle: '第一次完整公开的追风尝试',
+    location: '广东深圳盐田区海山，罗湖区',
+    date: '2023.7.17',
+    intensity: '强台风  28',
+    partner: 'chasing1713lsr',
+    note: '第一次到沿海地区追击。追风记录：https://www.bilibili.com/video/BV1hu411L75e?spm_id_from=333.788.videopod.sections&vd_source=5d9709f0600f3a17a5e4714e625f2bb4',
+    detailImage: '台风泰利追击云图.jpg'
+  },
+
+// ==================== 2023年以前追风记录 ====================
+
+{
+    id: 'Chaba-2022',
+    year: '2022',
+    name: '暹芭',
+    nameEn: '暹芭',
+    image: '台风暹芭追击云图.jpg',
+    subtitle: '在风雨中前行',
+    location: '广东省深圳市罗湖区',
+    date: '2022.7.1-2',
+    intensity: '台风  27',
+    partner: 'solo',
+    note: '印象最深的是做核酸检测的大棚像纸张一样被吹上树叠了起来',
+    detailImage: '台风暹芭追击云图.jpg'
+  },
+{
+    id: 'Higos-2020',
+    year: '2020',
+    name: '海高斯',
+    nameEn: '海高斯',
+    image: '台风海高斯追击云图.jpg',
+    subtitle: '主动出击',
+    location: '广东省深圳市罗湖区',
+    date: '2020.8.19',
+    intensity: '台风  25',
+    partner: 'solo',
+    note: '第一次走出家门的追风，也是第一次拿上仪器进行观测的台风',
+    detailImage: '台风海高斯追击云图.jpg'
+  },
+// ==================== 2020年以前追风记录 ====================
+{
+    id: 'Mangkhut-2018',
+    year: '2018',
+    name: '山竹',
+    nameEn: '山竹',
+    image: '台风山竹追击云图.jpg',
+    subtitle: '惊心动魄的一日，命运的齿轮开始转动......',
+    location: '广东省深圳市罗湖区',
+    date: '2018.9.16',
+    intensity: '强台风  45',
+    partner: 'parents',
+    note: '也许是我真正痴迷于台风和追风的开始.......那天中午和父亲一起开车去接母亲。路上已是狂风暴雨，白茫茫一片，车身左右摇摆，路途周围的树木不断倒下。那场惊心动魄的经历至今荡漾在我脑海之中。回到家，剧烈震动的玻璃门，抖动的大厦，咆哮的狂风让我真正体会到了什么叫都秒如年。父亲回到家后顶住摇摇欲坠的玻璃门，从中午一直到晚饭后才稍稍平息。第二天我见到了从未见过的景象：原始森林般的道路，倒下的空调外机，折断的路灯和标牌以及破碎的玻璃......台风山竹在我心灵中留下了不可磨灭的记忆',
+    detailImage: '台风山竹追击云图.jpg'
+  },
+
+{
+    id: 'Pakhar-2017',
+    year: '2017',
+    name: '帕卡',
+    nameEn: '帕卡',
+    image: '台风帕卡追击云图.jpg',
+    subtitle: '第一次体验高层台风',
+    location: '广东省深圳市罗湖区',
+    date: '2017.8.27',
+    intensity: '台风  33',
+    partner: 'solo',
+    note: '风雨最强的时候，空中全是被吹起的杂物和垃圾，垃圾桶也被吹翻移动',
+    detailImage: '台风帕卡追击云图.jpg'
+  },
+{
+    id: 'Hato-2017',
+    year: '2017',
+    name: '天鸽',
+    nameEn: '天鸽',
+    image: '台风天鸽追击云图.jpg',
+    subtitle: '意外的遭遇',
+    location: '广东深圳盐田区大梅沙',
+    date: '2017.8.23',
+    intensity: '强台风  40',
+    partner: 'parents',
+    note: '海边度假遭遇近岸爆发台风天鸽，从酒店往外看海上风高浪急，树木被吹得晕头转向，酒店灌满了风的呼啸声',
+    detailImage: '台风天鸽追击云图.jpg'
+  },
+{
+    id: 'Haima-2016',
+    year: '2016',
+    name: '海马',
+    nameEn: '海马',
+    image: '台风海马追击云图.jpg',
+    subtitle: '观察风暴之下的城市',
+    location: '广东深圳龙岗区',
+    date: '2016.10.21',
+    intensity: '强台风  35',
+    partner: 'solo',
+    note: '当时住在14楼，刚好处于窗外树木顶端。风雨最强烈的那几个小时雨横着飞，树木顶端被吹得倾斜摇晃到30°，暴风雨的沙沙声贯穿整个白天',
+    detailImage: '台风海马追击云图.jpg'
+  },
+{
+    id: 'Nida-2016',
+    year: '2016',
+    name: '妮妲',
+    nameEn: '妮妲',
+    image: '台风妮妲追击云图.jpg',
+    subtitle: '我的初次体验',
+    location: '广东深圳龙岗区',
+    date: '2016.8.1-8.2',
+    intensity: '台风  36',
+    partner: 'solo',
+    note: '第一次有记忆的体验和追击。本身对天气感兴趣的我听到有台风要来特意熬到深夜凌晨等待几年空窗的第一台。凌晨时分风雨终于到来，雨瓢刷刷刷横扫大地，吹弯树木，一些纸张布料碎屑飞起，风雨中途稍稍减小估计是风眼，但是很不干净，大风还是存在。这之后每次有台风来临我都会拿起手机拍几张照片或视频，虽然现在很多资料已经找不到了，但这应该是我追风的开端。直到2020年我才开始正式用仪器观察记录风暴，追风记录的视频也才开始变得完整。到23年才尝试出远门追击',
+    detailImage: '台风妮妲追击云图.jpg'
+  },
+  
+  // ==================== 添加更多追风记录 ====================
+  // 复制上面的格式，在下面添加新记录
+  // 例如：
+  // {
+  //   id: 'xxx-2024',
+  //   year: '2024',
+  //   name: '台风中文名',
+  //   nameEn: 'TYPHOON_NAME',
+  //   image: '你的图片URL',
+  //   subtitle: '一句话描述',
+  //   location: '地点',
+  //   date: '日期',
+  //   intensity: '强度',
+  //   partner: '搭档',
+  //   note: '备注',
+  //   detailImage: '详情页图片URL'
+  // }
+];
+
+// ==================== 追风详情页面样式配置 ====================
+
+// 【页面背景色】修改详情页背景颜色
+const DETAIL_BG_COLOR = '#1a4a7a';
+
+// 【标题字体大小】
+const DETAIL_TITLE_SIZE = '32px';
+
+// 【标题颜色】
+const DETAIL_TITLE_COLOR = '#ffffff';
+
+// 【副标题字体大小】
+const DETAIL_SUBTITLE_SIZE = '18px';
+
+// 【标签颜色】（"地点："、"强度："等红色标签）
+const INFO_LABEL_COLOR = '#ff6b6b';
+
+// 【标签字体大小】
+const INFO_LABEL_SIZE = '14px';
+
+// 【内容文字颜色】
+const INFO_VALUE_COLOR = '#333333';
+
+// 【内容文字大小】
+const INFO_VALUE_SIZE = '13px';
+
+</script>
+<!-- ======================================================================== -->
+
+  <!-- 背景图层 -->
+  <div class="hero-bg"></div>
+
+  <!-- 头部导航 -->
+  <header class="header">
+    <div class="avatar-container">
+      <img id="avatar-img" class="avatar" style="display: none;">
+      <div id="avatar-placeholder" class="avatar">粤气爱</div>
+    </div>
+    <!-- 第二个头像 - 仅在追风记录和详情页面显示 -->
+    <div class="avatar-container-secondary" id="avatar-secondary">
+      <img id="avatar-img-secondary" class="avatar" style="display: none;">
+      <div id="avatar-placeholder-secondary" class="avatar">追风者</div>
+    </div>
+    <!-- 第三个头像 - 仅在工具页面显示 -->
+    <div class="avatar-container-secondary" id="avatar-tertiary">
+      <img id="avatar-img-tertiary" class="avatar" style="display: none;">
+      <div id="avatar-placeholder-tertiary" class="avatar">开发者 3 号</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" data-page="home">主页</div>
+      <div class="nav-item" data-page="chase">追风记录</div>
+      <div class="nav-item has-dropdown" data-dropdown="datasource">
+        数据源
+        <div class="dropdown" id="datasource-dropdown">
+          <a href="https://www.windy.com/" target="_blank" class="dropdown-item">Windy</a>
+          <a href="https://zoom.earth/" target="_blank" class="dropdown-item">Zoom Earth</a>
+          <a href="https://www.nmc.cn/" target="_blank" class="dropdown-item">NMC</a>
+          <a href="https://earth.nullschool.net/zh-cn/" target="_blank" class="dropdown-item">Earth</a>
+          <a href="https://www.smca.fun/#/" target="_blank" class="dropdown-item">菜园子的天气栈</a>
+          <a href="https://www.dapiya.cn/" target="_blank" class="dropdown-item">Dapiya</a>
+          <a href="https://www.tropicaltidbits.com/" target="_blank" class="dropdown-item">Tropical Tidbits</a>
+          <a href="https://satellite.nsmc.org.cn/DataPortal/cn/home/index.html" target="_blank" class="dropdown-item">卫星云图</a>
+          <a href="https://www.storm-chasers.cn/tochinasers" target="_blank" class="dropdown-item">中国追风者</a>
+          <a href="https://www.tyboard.net/forum.php" target="_blank" class="dropdown-item">台风论坛</a>
+          <a href="https://tieba.baidu.com/f?kw=%E5%8F%B0%E9%A3%8E" target="_blank" class="dropdown-item">风吧</a>
+          <a href="https://www.easterlywave.com/" target="_blank" class="dropdown-item">东风波</a>
+        </div>
+      </div>
+      <div class="nav-item has-dropdown" data-dropdown="yueqiai">
+        粤气爱
+        <div class="dropdown" id="yueqiai-dropdown">
+          <a href="https://space.bilibili.com/700715911/upload/video" target="_blank" class="dropdown-item">Bilibili</a>
+          <a href="https://www.douyin.com/user/MS4wLjABAAAArPUjkxBS1dfO70La3B5O1vrJbpPm4Du9Z06PqiksxIs" target="_blank" class="dropdown-item">抖音</a>
+          <a href="https://weibo.com/u/6055273138" target="_blank" class="dropdown-item">微博</a>
+          <a href="https://www.xiaohongshu.com/user/profile/62ad8a83000000001b024eb1" target="_blank" class="dropdown-item">小红书</a>
+        </div>
+      </div>
+      <div class="nav-item has-dropdown" data-dropdown="weather-map">
+        天气地图
+        <div class="dropdown" id="weather-map-dropdown">
+          <div class="dropdown-item" data-page="weather">天气地图</div>
+          <div class="dropdown-item" data-page="online-weather">线上天气地图</div>
+        </div>
+      </div>
+      <div class="nav-item has-dropdown" data-dropdown="tools">
+        工具
+        <div class="dropdown" id="tools-dropdown">
+          <div class="dropdown-item" data-page="typhoon-animation">台风动画生成</div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- 主页内容 -->
+  <main class="main-content active" id="home-page">
+    <h1 class="title">广东气象爱好者</h1>
+    <div class="intro-container">
+      <p class="intro-text">广东气象爱好者最初是一群在微信群讨论天气气象的群体，至今已有十年历史。2020年正式入驻抖音，2022年正式入驻B站并发展初步团队成员。
+目前已在多个平台主要更新气象播报（速报），气象回顾分析，实地追击，气象观察vlog，台风路径动画，上帝视角看天气（卫星回顾），气象预报，气象科普，气象活动等等。
+2024年9月团队正式对外开放，通过私信申请可以成为我们的共创者，目前已有九人参与。</p>
+    </div>
+  </main>
+
+  <!-- 追风记录页面 -->
+  <div class="chase-page" id="chase-page">
+    <div class="chase-container">
+      <!-- 左侧：历年追风记录列表 -->
+      <div class="chase-left">
+        <div class="legend-box">
+          <div class="legend-title">图例说明</div>
+          <div class="legend-item">⭐️ 表示在外追击的台风</div>
+          <div class="legend-item">* 为没有气象数据实测，只有零碎拍摄的台风</div>
+        </div>
+        <div class="chase-list-box">
+          <div class="chase-list-title">历年追风记录</div>
+          <div id="chase-list">
+            <div class="chase-item"><span class="chase-year">2026</span><span class="chase-name">红霞</span><span class="chase-mark">⭐️</span></div>
+            <div class="chase-item"><span class="chase-year">2025</span><span class="chase-name">桦加沙</span><span class="chase-mark">⭐️</span></div>
+            <div class="chase-item"><span class="chase-year">2025</span><span class="chase-name">塔巴</span><span class="chase-mark">⭐️</span></div>
+            <div class="chase-item"><span class="chase-year">2024</span><span class="chase-name">摩羯</span><span class="chase-mark">⭐️</span></div>
+            <div class="chase-item"><span class="chase-year">2024</span><span class="chase-name">马力斯</span><span class="chase-mark">⭐️</span></div>
+            <div class="chase-item"><span class="chase-year">2023</span><span class="chase-name">小犬</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2023</span><span class="chase-name">海葵</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2023</span><span class="chase-name">苏拉</span><span class="chase-mark">⭐️</span></div>
+            <div class="chase-item"><span class="chase-year">2023</span><span class="chase-name">杜苏芮</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2023</span><span class="chase-name">泰利</span><span class="chase-mark">⭐️</span></div>
+            <div class="chase-item"><span class="chase-year">2022</span><span class="chase-name">尼格</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2022</span><span class="chase-name">纳沙</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2022</span><span class="chase-name">马鞍</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2022</span><span class="chase-name">木兰</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2022</span><span class="chase-name">暹芭</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2021</span><span class="chase-name">雷伊</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2021</span><span class="chase-name">圆规</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2021</span><span class="chase-name">狮子山</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2021</span><span class="chase-name">卢碧</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2021</span><span class="chase-name">查帕卡</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2020</span><span class="chase-name">沙德尔</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2020</span><span class="chase-name">浪卡</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2020</span><span class="chase-name">海高斯</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2020</span><span class="chase-name">鹦鹉</span><span class="chase-mark"></span></div>
+            <div class="chase-item"><span class="chase-year">2019</span><span class="chase-name">白鹿</span><span class="chase-mark">*</span></div>
+            <div class="chase-item"><span class="chase-year">2018</span><span class="chase-name">玉兔</span><span class="chase-mark">*</span></div>
+            <div class="chase-item"><span class="chase-year">2018</span><span class="chase-name">山竹</span><span class="chase-mark">*</span></div>
+            <div class="chase-item"><span class="chase-year">2018</span><span class="chase-name">艾云尼</span><span class="chase-mark">*</span></div>
+            <div class="chase-item"><span class="chase-year">2017</span><span class="chase-name">帕卡</span><span class="chase-mark">*</span></div>
+            <div class="chase-item"><span class="chase-year">2017</span><span class="chase-name">天鸽</span><span class="chase-mark">⭐️*</span></div>
+            <div class="chase-item"><span class="chase-year">2017</span><span class="chase-name">洛克</span><span class="chase-mark">*</span></div>
+            <div class="chase-item"><span class="chase-year">2017</span><span class="chase-name">苗柏</span><span class="chase-mark">*</span></div>
+            <div class="chase-item"><span class="chase-year">2016</span><span class="chase-name">海马</span><span class="chase-mark">*</span></div>
+            <div class="chase-item"><span class="chase-year">2016</span><span class="chase-name">妮妲</span><span class="chase-mark">*</span></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 右侧：追风栏目展示 -->
+      <div class="chase-right">
+        <div class="chase-grid-title">主要追风记录</div>
+        <div class="chase-grid" id="chase-grid">
+          <!-- 栏目由JavaScript动态生成 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 追风详情页面 -->
+  <div class="detail-page" id="detail-page">
+    <div class="detail-header">
+      <div class="back-btn" id="back-btn">← 返回追风记录</div>
+      <h1 class="detail-title" id="detail-title">台风名称 年份</h1>
+      <p class="detail-subtitle" id="detail-subtitle">副标题</p>
+    </div>
+    <div class="detail-content">
+      <div class="detail-info">
+        <div class="info-section">
+          <div class="info-label">地点：</div>
+          <div class="info-value" id="detail-location">地点内容</div>
+        </div>
+        <div class="info-section">
+          <div class="info-label">日期：</div>
+          <div class="info-value" id="detail-date">日期内容</div>
+        </div>
+        <div class="info-section">
+          <div class="info-label">强度：</div>
+          <div class="info-value" id="detail-intensity">强度内容</div>
+        </div>
+        <div class="info-section">
+          <div class="info-label">搭档：</div>
+          <div class="info-value" id="detail-partner">搭档内容</div>
+        </div>
+        <div class="info-note" id="detail-note">备注信息</div>
+      </div>
+      <div class="detail-image-container">
+        <img class="detail-image" id="detail-image" src="" alt="追风图片">
+      </div>
+    </div>
+  </div>
+
+  <!-- 天气地图页面 -->
+  <div class="weather-map-page" id="weather-map-page">
+    <div id="weather-map"></div>
+    <div class="map-extra-controls">
+      <label><input type="checkbox" id="showForecastPath" checked> 📊 预测路径</label>
+      <button class="user-forecast-btn" id="userForecastBtn">✏️ 我要预报</button>
+      <select class="typhoon-selector" id="typhoonSelector" style="display:none;margin-left:6px;padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.5);color:#fff;font-size:12px;font-family:inherit;outline:none;cursor:pointer;">
+        <option value="">请选择台风</option>
+      </select>
+      <button class="user-forecast-btn" id="addTyphoonBtn" style="display:none;margin-left:6px;font-size:11px;padding:4px 10px;" title="手动添加台风"> 添加台风</button>
+    </div>
+    <div class="map-toggle-panel">
+      <button class="map-toggle-btn active active-forecast" data-toggle="forecast">🌤️ 天气预报</button>
+      <button class="map-toggle-btn active active-warning" data-toggle="warning">⚠️ 预警</button>
+      <button class="map-toggle-btn" data-toggle="typhoon">🌀 台风路径</button>
+    </div>
+  </div>
+
+  <!-- 线上天气地图页面 -->
+  <div class="online-weather-page" id="online-weather-page">
+    <div class="online-weather-container">
+      <div class="online-weather-header">🌍 线上气象地图</div>
+      <div class="ow-satellite-card" style="background-image:url('卫星云图界面背景.jpg')">
+        <a class="ow-satellite-link" href="https://zoom.earth/" target="_blank" rel="noopener">
+          交互式静轨卫星云图拼图
+        </a>
+        <a class="ow-satellite-link" href="http://www.nsmc.org.cn/nsmc/cn/image/index.html?id=FY4B_AGRI_IMG_DISK_GCLR_NOM" target="_blank" rel="noopener">
+          查看全圆盘卫星云图
+        </a>
+      </div>
+      <div class="ow-item">
+        <div class="ow-label">Ventusky · 全球天气可视化</div>
+        <iframe src="https://www.ventusky.com/" class="ow-iframe" allowfullscreen loading="lazy"></iframe>
+      </div>
+      <div class="ow-item">
+        <div class="ow-label">Windy · 风场与天气图</div>
+        <iframe src="https://www.windy.com/" class="ow-iframe" allowfullscreen loading="lazy"></iframe>
+        <div class="ow-vpn-tip">⚠️ 需使用魔法查看</div>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- 台风动画生成页面 -->
+  <div class="typhoon-animation-page" id="typhoon-animation-page">
+    <div class="ta-container">
+      <div class="ta-header">
+        <h1 class="ta-title">🌀 台风路径动画自动生成</h1>
+        <p class="ta-subtitle">上传 ATCF b-deck 文件，自动生成专业台风路径动画视频</p>
+      </div>
+      
+      <div class="ta-content">
+        <!-- 上传区域 -->
+        <div class="ta-section">
+          <h2 class="ta-section-title"> 上传数据文件</h2>
+          <div class="ta-upload-area" id="ta-upload-area">
+            <div class="ta-upload-icon">📤</div>
+            <div class="ta-upload-text">点击或拖拽上传 ATCF b-deck 文件 (.dat)</div>
+            <div class="ta-upload-hint">支持 JTWC 最佳路径数据格式</div>
+            <input type="file" id="ta-file-input" accept=".dat" style="display: none;">
+          </div>
+          <div class="ta-file-info" id="ta-file-info" style="display: none;">
+            <div class="ta-file-name" id="ta-file-name"></div>
+            <button class="ta-btn ta-btn-secondary" id="ta-clear-file">清除</button>
+          </div>
+        </div>
+
+        <!-- 功能说明 -->
+        <div class="ta-section">
+          <h2 class="ta-section-title">✨ 自动处理功能</h2>
+          <div class="ta-features">
+            <div class="ta-feature">
+              <div class="ta-feature-icon">📍</div>
+              <div class="ta-feature-text">自动解析气旋位置、强度、性质、名称与状态变化</div>
+            </div>
+            <div class="ta-feature">
+              <div class="ta-feature-icon"></div>
+              <div class="ta-feature-text">无需手工制作关键帧，自动生成平滑移动的气旋图标</div>
+            </div>
+            <div class="ta-feature">
+              <div class="ta-feature-icon">🔄</div>
+              <div class="ta-feature-text">保持不同强度素材的旋转相位连续、切换自然</div>
+            </div>
+            <div class="ta-feature">
+              <div class="ta-feature-icon">⏩</div>
+              <div class="ta-feature-text">智能快进长时间无活动区间</div>
+            </div>
+            <div class="ta-feature">
+              <div class="ta-feature-icon">️</div>
+              <div class="ta-feature-text">自动规划地图镜头，根据活跃区域平移和缩放</div>
+            </div>
+            <div class="ta-feature">
+              <div class="ta-feature-icon">🎵</div>
+              <div class="ta-feature-text">内置素材去黑边、预缩放、登陆检测与特效、ACE 统计、片头和背景音乐</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 生成按钮 -->
+        <div class="ta-section">
+          <button class="ta-btn ta-btn-primary" id="ta-generate-btn" disabled>
+            🚀 生成台风动画
+          </button>
+        </div>
+
+        <!-- 进度显示 -->
+        <div class="ta-section" id="ta-progress-section" style="display: none;">
+          <h2 class="ta-section-title">⏳ 生成进度</h2>
+          <div class="ta-progress-bar">
+            <div class="ta-progress-fill" id="ta-progress-fill"></div>
+          </div>
+          <div class="ta-progress-text" id="ta-progress-text">准备中...</div>
+        </div>
+
+        <!-- 结果展示 -->
+        <div class="ta-section" id="ta-result-section" style="display: none;">
+          <h2 class="ta-section-title">✅ 生成完成</h2>
+          <div class="ta-result-info">
+            <div class="ta-result-message" id="ta-result-message"></div>
+            <a class="ta-btn ta-btn-primary" id="ta-download-btn" href="#" download>
+              ⬇️ 下载动画视频
+            </a>
+          </div>
+        </div>
+
+        <!-- 错误提示 -->
+        <div class="ta-section" id="ta-error-section" style="display: none;">
+          <h2 class="ta-section-title">❌ 生成失败</h2>
+          <div class="ta-error-message" id="ta-error-message"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== 初始化背景图和头像 ==========
+    document.documentElement.style.setProperty('--background-image', `url('${BACKGROUND_IMAGE_URL}')`);
+    
+    const avatarImg = document.getElementById('avatar-img');
+    const avatarPlaceholder = document.getElementById('avatar-placeholder');
+    
+    if (AVATAR_IMAGE_URL && AVATAR_IMAGE_URL.trim() !== '') {
+      avatarImg.src = AVATAR_IMAGE_URL;
+      avatarImg.style.display = 'block';
+      avatarPlaceholder.style.display = 'none';
+    }
+
+    // ========== 初始化第二个头像 ==========
+    const avatarImgSecondary = document.getElementById('avatar-img-secondary');
+    const avatarPlaceholderSecondary = document.getElementById('avatar-placeholder-secondary');
+    
+    if (AVATAR_SECONDARY_URL && AVATAR_SECONDARY_URL.trim() !== '') {
+      avatarImgSecondary.src = AVATAR_SECONDARY_URL;
+      avatarImgSecondary.style.display = 'block';
+      avatarPlaceholderSecondary.style.display = 'none';
+    }
+
+    // ========== 控制第二个头像显示/隐藏 ==========
+    function updateSecondaryAvatarVisibility(show) {
+      const avatarSecondary = document.getElementById('avatar-secondary');
+      if (show) {
+        avatarSecondary.classList.add('show');
+      } else {
+        avatarSecondary.classList.remove('show');
+      }
+    }
+
+    // ========== 生成追风栏目卡片 ==========
+    function renderChaseGrid() {
+      const grid = document.getElementById('chase-grid');
+      grid.innerHTML = '';
+      
+      CHASE_DATA.forEach(chase => {
+        const card = document.createElement('div');
+        card.className = 'chase-card';
+        card.dataset.id = chase.id;
+        card.innerHTML = `
+          <img class="chase-card-image" src="${chase.image}" alt="${chase.nameEn} ${chase.year}" onerror="this.src='https://placehold.co/400x200/333/fff?text=${chase.nameEn}+${chase.year}'">
+          <div class="chase-card-name">${chase.nameEn} ${chase.year}</div>
+        `;
+        card.addEventListener('click', () => showDetail(chase));
+        grid.appendChild(card);
+      });
+    }
+
+    // ========== 显示追风详情页面 ==========
+    function showDetail(chase) {
+      const homePage = document.getElementById('home-page');
+      const chasePage = document.getElementById('chase-page');
+      const detailPage = document.getElementById('detail-page');
+      
+      // 隐藏其他页面
+      homePage.classList.remove('active');
+      homePage.classList.add('hidden');
+      chasePage.classList.remove('active');
+      detailPage.classList.add('active');
+      
+      // 显示第二个头像（详情页面也显示两个头像）
+      updateSecondaryAvatarVisibility(true);
+      
+      // 设置详情页背景色
+      detailPage.style.background = DETAIL_BG_COLOR;
+      
+      // 填充详情页内容
+      document.getElementById('detail-title').textContent = `${chase.nameEn} ${chase.year}`;
+      document.getElementById('detail-title').style.fontSize = DETAIL_TITLE_SIZE;
+      document.getElementById('detail-title').style.color = DETAIL_TITLE_COLOR;
+      
+      document.getElementById('detail-subtitle').textContent = chase.subtitle;
+      document.getElementById('detail-subtitle').style.fontSize = DETAIL_SUBTITLE_SIZE;
+      
+      document.getElementById('detail-location').textContent = chase.location;
+      document.getElementById('detail-date').textContent = chase.date;
+      document.getElementById('detail-intensity').textContent = chase.intensity;
+      document.getElementById('detail-partner').textContent = chase.partner;
+      document.getElementById('detail-note').textContent = chase.note || '';
+      
+      // 设置详情图片
+      document.getElementById('detail-image').src = chase.detailImage;
+      
+      // 设置标签样式
+      document.querySelectorAll('.info-label').forEach(el => {
+        el.style.color = INFO_LABEL_COLOR;
+        el.style.fontSize = INFO_LABEL_SIZE;
+      });
+      
+      // 设置内容样式
+      document.querySelectorAll('.info-value').forEach(el => {
+        el.style.color = INFO_VALUE_COLOR;
+        el.style.fontSize = INFO_VALUE_SIZE;
+      });
+    }
+
+    // ========== 返回追风记录页面 ==========
+    document.getElementById('back-btn').addEventListener('click', function() {
+      const homePage = document.getElementById('home-page');
+      const chasePage = document.getElementById('chase-page');
+      const detailPage = document.getElementById('detail-page');
+      
+      detailPage.classList.remove('active');
+      chasePage.classList.add('active');
+      
+      // 返回追风记录页面时，仍然显示两个头像
+      updateSecondaryAvatarVisibility(true);
+    });
+
+    // ========== 导航切换 ==========
+    const navItems = document.querySelectorAll('.nav-item');
+    const homePage = document.getElementById('home-page');
+    const chasePage = document.getElementById('chase-page');
+    const detailPage = document.getElementById('detail-page');
+    const weatherMapPage = document.getElementById('weather-map-page');
+    const onlineWeatherPage = document.getElementById('online-weather-page');
+    const typhoonAnimationPage = document.getElementById('typhoon-animation-page');
+
+    navItems.forEach(item => {
+      if (!item.classList.contains('has-dropdown')) {
+        item.addEventListener('click', function() {
+          const page = this.dataset.page;
+          
+          navItems.forEach(nav => nav.classList.remove('active'));
+          this.classList.add('active');
+          
+          document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+          
+          // 隐藏所有页面
+          homePage.classList.remove('active');
+          homePage.classList.add('hidden');
+          chasePage.classList.remove('active');
+          detailPage.classList.remove('active');
+          weatherMapPage.classList.remove('active');
+          onlineWeatherPage.classList.remove('active');
+          typhoonAnimationPage.classList.remove('active');
+          
+          if (page === 'home') {
+            homePage.classList.add('active');
+            homePage.classList.remove('hidden');
+            // 主页隐藏第二个和第三个头像
+            updateSecondaryAvatarVisibility(false);
+            updateTertiaryAvatarVisibility(false);
+          } else if (page === 'chase') {
+            chasePage.classList.add('active');
+            // 追风记录页面显示第二个头像
+            updateSecondaryAvatarVisibility(true);
+            updateTertiaryAvatarVisibility(false);
+          } else if (page === 'weather') {
+            weatherMapPage.classList.add('active');
+            // 天气地图页面显示第二个头像
+            updateSecondaryAvatarVisibility(true);
+            updateTertiaryAvatarVisibility(false);
+            // 延迟初始化地图（确保页面可见后再渲染）
+            if (!window.weatherMapInitialized) {
+              setTimeout(initWeatherMap, 100);
+            } else {
+              setTimeout(() => window.weatherMap.invalidateSize(), 100);
+            }
+          } else if (page === 'online-weather') {
+            onlineWeatherPage.classList.add('active');
+            updateSecondaryAvatarVisibility(true);
+            updateTertiaryAvatarVisibility(false);
+          } else if (page === 'typhoon-animation') {
+            typhoonAnimationPage.classList.add('active');
+            updateSecondaryAvatarVisibility(false);
+            updateTertiaryAvatarVisibility(true);
+          }
+        });
+      }
+    });
+
+    // ========== 下拉菜单切换 ==========
+    const dropdownItems = document.querySelectorAll('.has-dropdown');
+    
+    dropdownItems.forEach(item => {
+      item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const dropdownId = this.dataset.dropdown + '-dropdown';
+        const dropdown = document.getElementById(dropdownId);
+        
+        document.querySelectorAll('.dropdown').forEach(d => {
+          if (d.id !== dropdownId) {
+            d.classList.remove('show');
+          }
+        });
+        
+        dropdown.classList.toggle('show');
+      });
+    });
+
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+    });
+
+    // ========== 天气地图下拉菜单选项点击 ==========
+    document.querySelectorAll('#weather-map-dropdown .dropdown-item').forEach(item => {
+      item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const page = this.dataset.page;
+        
+        // 关闭所有下拉菜单
+        document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+        
+        // 隐藏所有页面
+        homePage.classList.remove('active');
+        homePage.classList.add('hidden');
+        chasePage.classList.remove('active');
+        detailPage.classList.remove('active');
+        weatherMapPage.classList.remove('active');
+        onlineWeatherPage.classList.remove('active');
+        typhoonAnimationPage.classList.remove('active');
+        
+        if (page === 'weather') {
+          weatherMapPage.classList.add('active');
+          updateSecondaryAvatarVisibility(true);
+          updateTertiaryAvatarVisibility(false);
+          if (!window.weatherMapInitialized) {
+            setTimeout(initWeatherMap, 100);
+          } else {
+            setTimeout(() => window.weatherMap.invalidateSize(), 100);
+          }
+        } else if (page === 'online-weather') {
+          onlineWeatherPage.classList.add('active');
+          updateSecondaryAvatarVisibility(true);
+          updateTertiaryAvatarVisibility(false);
+        } else if (page === 'typhoon-animation') {
+          typhoonAnimationPage.classList.add('active');
+          updateSecondaryAvatarVisibility(false);
+          updateTertiaryAvatarVisibility(true);
+        }
+      });
+    });
+
+    // ========== 天气地图 ==========
+    // 主要城市列表（含经纬度）
+    const CITIES = [
+      { name: '北京', lat: 39.9042, lon: 116.4074 },
+      { name: '深圳', lat: 22.5431, lon: 114.0579 },
+      { name: '上海', lat: 31.2304, lon: 121.4737 },
+      { name: '广州', lat: 23.1291, lon: 113.2644 },
+      { name: '成都', lat: 30.6595, lon: 104.0668 },
+      { name: '杭州', lat: 30.2741, lon: 120.1551 },
+      { name: '天津', lat: 39.1256, lon: 117.1902 },
+      { name: '武汉', lat: 30.5928, lon: 114.3055 },
+      { name: '南京', lat: 32.0603, lon: 118.7969 },
+      { name: '重庆', lat: 29.4316, lon: 106.9123 },
+      { name: '西安', lat: 34.3416, lon: 108.9398 },
+      { name: '香港', lat: 22.3193, lon: 114.1694 },
+      { name: '长沙', lat: 28.2282, lon: 112.9388 },
+      { name: '湛江', lat: 21.2339, lon: 110.3875 },
+      { name: '防城港', lat: 21.6867, lon: 108.3547 },
+      { name: '图里河', lat: 50.4829, lon: 121.6695 },
+      { name: '漠河', lat: 52.9697, lon: 122.5339 },
+      { name: '威海', lat: 37.5091, lon: 122.1136 },
+      { name: '吐鲁番', lat: 42.9400, lon: 89.1840 },
+      { name: '阿勒泰', lat: 47.8203, lon: 88.1220 },
+      { name: '银川', lat: 38.4864, lon: 106.2325 },
+      { name: '宿迁', lat: 33.9632, lon: 118.2752 },
+      { name: '哈尔滨', lat: 45.8038, lon: 126.5350 },
+      { name: '合肥', lat: 31.8612, lon: 117.2830 },
+      { name: '南昌', lat: 28.6765, lon: 115.8922 },
+      { name: '厦门', lat: 24.4798, lon: 118.0894 },
+      { name: '台北', lat: 25.0330, lon: 121.5654 },
+      { name: '珠海', lat: 22.2710, lon: 113.5770 },
+      { name: '三亚', lat: 18.2479, lon: 109.5083 },
+      { name: '汕头', lat: 23.3535, lon: 116.6853 },
+      { name: '郑州', lat: 34.7580, lon: 113.6654 },
+      { name: '福州', lat: 26.0745, lon: 119.2965 },
+      { name: '南宁', lat: 22.8170, lon: 108.3665 },
+      { name: '韶关', lat: 24.8085, lon: 113.5970 },
+      { name: '石家庄', lat: 38.0455, lon: 114.5025 },
+      { name: '海口', lat: 20.0440, lon: 110.1999 },
+      { name: '呼和浩特', lat: 40.8415, lon: 111.7520 },
+      { name: '太原', lat: 37.8570, lon: 112.5492 },
+      { name: '沈阳', lat: 41.8057, lon: 123.4315 },
+      { name: '长春', lat: 43.8868, lon: 125.3245 },
+      { name: '兰州', lat: 36.0611, lon: 103.8343 },
+      { name: '昆明', lat: 25.0389, lon: 102.7183 },
+      { name: '贵阳', lat: 26.6470, lon: 106.6302 },
+      { name: '拉萨', lat: 29.6500, lon: 91.1000 },
+      { name: '西宁', lat: 36.6173, lon: 101.7778 },
+      { name: '乌鲁木齐', lat: 43.8256, lon: 87.6168 },
+      { name: '济南', lat: 36.6512, lon: 116.9972 },
+      { name: '桂林', lat: 25.2357, lon: 110.1799 },
+      { name: '三明', lat: 26.2672, lon: 117.6340 },
+    ];
+
+    // ==================== OpenWeatherMap 配置 ====================
+    const OPENWEATHER_API_KEY = 'dc7353b67b6c40590ae08ca972bac622';
+
+    // ==================== 和风天气 配置 ====================
+    const QWEATHER_API_HOST = 'mp7p44w5mv.re.qweatherapi.com';
+    const QWEATHER_API_KEY = '3a15479e1fd54c3cb6172d235dcb0d27';
+
+    // 预警等级颜色映射
+    const WARNING_LEVEL_COLORS = {
+      'white': 'rgba(200,200,200,0.9)',
+      'blue': 'rgba(66,133,244,0.9)',
+      'yellow': 'rgba(251,188,4,0.9)',
+      'orange': 'rgba(234,67,53,0.9)',
+      'red': 'rgba(204,0,0,0.9)',
+      'minor': 'rgba(66,133,244,0.9)',
+      'moderate': 'rgba(251,188,4,0.9)',
+      'severe': 'rgba(234,67,53,0.9)',
+      'extreme': 'rgba(204,0,0,0.9)'
+    };
+    // 预警类型图标映射
+    const WARNING_TYPE_ICONS = {
+      '台风': '', '暴雨': '⛈️', '大风': '💨', '高温': '🌡️',
+      '低温': '❄️', '寒潮': '', '雷电': '', '冰雹': '🧊',
+      '大雾': '🌫️', '霾': '😷', '沙尘暴': '🏜️', '干旱': '️',
+      '霜冻': '️', '道路结冰': '️', '森林火险': '', '地质灾害': '⛰️',
+      '雷雨大风': '⛈️', '强对流': '🌩️', '雪灾': '❄️', '寒冷': '🥶'
+    };
+
+    // 台风强度颜色映射：按照风速对应不同强度等级的颜色
+    function getTyphoonIntensityColor(ws) {
+      if (ws >= 51) return '#e74c3c';    // 超强台风 16-17级 红色
+      if (ws >= 41.5) return '#e91e63';  // 强台风 14-15级 粉色
+      if (ws >= 32.7) return '#e67e22';  // 台风 12-13级 橙色
+      if (ws >= 24.5) return '#f1c40f';  // 强热带风暴 10-11级 黄色
+      if (ws >= 17.2) return '#3498db';  // 热带风暴 8-9级 蓝色
+      return '#95a5a6';                   // 热带低压 <8级 灰色
+    }
+
+    function getTyphoonIntensityLabel(ws) {
+      if (ws >= 51) return '超强台风';
+      if (ws >= 41.5) return '强台风';
+      if (ws >= 32.7) return '台风';
+      if (ws >= 24.5) return '强热带风暴';
+      if (ws >= 17.2) return '热带风暴';
+      if (ws >= 10.8) return '热带低压';
+      return '低压区';
+    }
+
+    // 获取城市预警信息（和风天气）
+    async function fetchCityWarning(city) {
+      try {
+        const url = `https://${QWEATHER_API_HOST}/weatheralert/v1/current/${city.lat}/${city.lon}`;
+        const res = await fetch(url, {
+          headers: { 'X-QW-Api-Key': QWEATHER_API_KEY }
+        });
+        const data = await res.json();
+        if (data.alerts && data.alerts.length > 0) {
+          return data.alerts[0];
+        }
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 获取台风列表
+    async function fetchTyphoonList() {
+      try {
+        const url = `https://${QWEATHER_API_HOST}/v7/tropical/storm-list?basin=NP&year=${new Date().getFullYear()}`;
+        const res = await fetch(url, {
+          headers: { 'X-QW-Api-Key': QWEATHER_API_KEY }
+        });
+        const data = await res.json();
+        if (data.code === '200' && data.storm && data.storm.length > 0) {
+          return data.storm.filter(tc => tc.isActive === '1' || tc.isActive === true);
+        }
+        return [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    // 获取台风路径（含风圈数据）
+    async function fetchTyphoonTrack(stormId) {
+      try {
+        const url = `https://${QWEATHER_API_HOST}/v7/tropical/storm-track?stormid=${stormId}`;
+        const res = await fetch(url, {
+          headers: { 'X-QW-Api-Key': QWEATHER_API_KEY }
+        });
+        const data = await res.json();
+        if (data.code === '200' && data.track && data.track.length > 0) {
+          return {
+            now: data.now || null,
+            track: data.track,
+            name: data.name || ''
+          };
+        }
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // 绘制风圈（7级/10级/12级）
+    function drawWindCircle(layerGroup, lat, lon, radiusKm, color, label) {
+      if (!radiusKm || radiusKm <= 0) return null;
+      return L.circle([lat, lon], {
+        radius: radiusKm * 1000,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.08,
+        weight: 1.5,
+        dashArray: '4, 4',
+        opacity: 0.5
+      }).bindTooltip(`${label}: ${radiusKm}km`, { direction: 'center' })
+      .addTo(layerGroup);
+    }
+
+    // OWM天气代码转描述
+    function getWeatherDesc(code) {
+      if (code >= 200 && code < 300) return '雷暴';
+      if (code >= 300 && code < 400) return '毛毛雨';
+      if (code >= 500 && code < 510) return '小雨';
+      if (code >= 510 && code < 520) return '中雨';
+      if (code >= 520 && code < 600) return '大雨';
+      if (code >= 600 && code < 610) return '小雪';
+      if (code >= 610 && code < 620) return '中雪';
+      if (code >= 620 && code < 700) return '大雪';
+      if (code === 701) return '薄雾';
+      if (code === 711) return '烟霾';
+      if (code === 721) return '霾';
+      if (code === 731 || code === 751) return '沙尘';
+      if (code === 741) return '雾';
+      if (code === 761) return '浮尘';
+      if (code === 762) return '火山灰';
+      if (code === 771) return '飑';
+      if (code === 781) return '龙卷风';
+      if (code === 800) return '晴';
+      if (code === 801) return '少云';
+      if (code === 802) return '多云';
+      if (code === 803) return '阴';
+      if (code === 804) return '阴';
+      return '未知';
+    }
+
+    // 台风类型中文名
+    function getTyphoonType(type) {
+      const types = {
+        'TD': '热带低压',
+        'TS': '热带风暴',
+        'STS': '强热带风暴',
+        'TY': '台风',
+        'STY': '强台风',
+        'SuperTY': '超强台风'
+      };
+      return types[type] || type || '';
+    }
+
+    function getRainLevel(mm) {
+      if (mm < 0.1) return '';
+      if (mm < 10) return '小雨';
+      if (mm >= 10 && mm < 25) return '中雨';
+      if (mm >= 25 && mm <= 50) return '大雨';
+      if (mm >= 50 && mm < 100) return '暴雨';
+      if (mm >= 100 && mm <= 250) return '大暴雨';
+      if (mm > 250) return '特大暴雨';
+      return '';
+    }
+
+    // OWM天气代码转图标
+    function getWeatherIcon(code) {
+      if (code >= 200 && code < 300) return '⛈️';
+      if (code >= 300 && code < 400) return '🌦️';
+      if (code >= 500 && code < 600) return '🌧️';
+      if (code >= 600 && code < 700) return '🌨️';
+      if (code >= 700 && code < 800) return '🌫️';
+      if (code === 800) return '☀️';
+      if (code === 801) return '🌤️';
+      if (code === 802) return '⛅';
+      if (code >= 803) return '☁️';
+      return '🌤️';
+    }
+
+    // 获取天气数据（OpenWeatherMap）
+    async function fetchWeatherData(city) {
+      try {
+        const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${city.lat}&lon=${city.lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=zh_cn`;
+        const currentRes = await fetch(currentUrl);
+        const currentData = await currentRes.json();
+        
+        const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${city.lat}&lon=${city.lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=zh_cn`;
+        const forecastRes = await fetch(forecastUrl);
+        const forecastData = await forecastRes.json();
+        
+        const dailyMap = {};
+        const hourlyData = { relative_humidity_2m: [], surface_pressure: [], visibility: [] };
+        
+        for (const item of forecastData.list) {
+          const date = item.dt_txt.split(' ')[0];
+          if (!dailyMap[date]) {
+            dailyMap[date] = { temps: [], weatherCodes: [], precip: 0, windSpeeds: [], windDirs: [], humidities: [], pressures: [], visibilities: [] };
+          }
+          dailyMap[date].temps.push(item.main.temp);
+          dailyMap[date].weatherCodes.push(item.weather[0].id);
+          dailyMap[date].precip += (item.rain ? (item.rain['3h'] || 0) : 0);
+          dailyMap[date].windSpeeds.push(item.wind.speed);
+          dailyMap[date].windDirs.push(item.wind.deg);
+          dailyMap[date].humidities.push(item.main.humidity);
+          dailyMap[date].pressures.push(item.main.pressure);
+          dailyMap[date].visibilities.push(item.visibility);
+          hourlyData.relative_humidity_2m.push(item.main.humidity);
+          hourlyData.surface_pressure.push(item.main.pressure);
+          hourlyData.visibility.push(item.visibility);
+        }
+        
+        const dates = Object.keys(dailyMap).sort();
+        const daily = {
+          time: dates,
+          weather_code: dates.map(d => {
+            const codes = dailyMap[d].weatherCodes;
+            const freq = {};
+            for (const c of codes) freq[c] = (freq[c] || 0) + 1;
+            return parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
+          }),
+          temperature_2m_max: dates.map(d => Math.round(Math.max(...dailyMap[d].temps) * 10) / 10),
+          temperature_2m_min: dates.map(d => Math.round(Math.min(...dailyMap[d].temps) * 10) / 10),
+          precipitation_sum: dates.map(d => Math.round(dailyMap[d].precip * 100) / 100),
+          precipitation_probability_max: dates.map(() => 0),
+          wind_speed_10m_max: dates.map(d => Math.round(Math.max(...dailyMap[d].windSpeeds) * 10) / 10),
+          wind_direction_10m_dominant: dates.map(d => Math.round(dailyMap[d].windDirs.reduce((a, b) => a + b, 0) / dailyMap[d].windDirs.length))
+        };
+        
+        const current = {
+          temperature_2m: currentData.main.temp,
+          relative_humidity_2m: currentData.main.humidity,
+          apparent_temperature: currentData.main.feels_like,
+          precipitation: currentData.rain ? (currentData.rain['1h'] || currentData.rain['3h'] || 0) : 0,
+          weather_code: currentData.weather[0].id,
+          wind_speed_10m: currentData.wind.speed,
+          wind_direction_10m: currentData.wind.deg,
+          surface_pressure: currentData.main.pressure,
+          visibility: currentData.visibility
+        };
+        
+        return { current, daily, hourly: hourlyData };
+      } catch (e) {
+        console.error('获取天气数据失败:', city.name, e);
+        return null;
+      }
+    }
+
+    // 获取台风预报路径
+    async function fetchTyphoonForecast(stormId) {
+      try {
+        const url = `https://${QWEATHER_API_HOST}/v7/tropical/storm-forecast?stormid=${stormId}`;
+        const res = await fetch(url, {
+          headers: { 'X-QW-Api-Key': QWEATHER_API_KEY }
+        });
+        const data = await res.json();
+        if (data.code === '200' && data.forecast && data.forecast.length > 0) {
+          return data.forecast;
+        }
+        return null;
+      } catch (e) {
+        console.error('获取台风预报失败:', e);
+        return null;
+      }
+    }
+
+    // 获取空气质量数据（和风天气）
+    async function fetchAirQuality(city) {
+      try {
+        const url = `https://${QWEATHER_API_HOST}/airquality/v1/current/${city.lat.toFixed(2)}/${city.lon.toFixed(2)}`;
+        const res = await fetch(url, {
+          headers: { 'X-QW-Api-Key': QWEATHER_API_KEY }
+        });
+        const data = await res.json();
+        if (data && data.pollutants) {
+          let pm25 = null, pm10 = null;
+          data.pollutants.forEach(p => {
+            if (p.code === 'pm2p5') pm25 = p.concentration.value;
+            if (p.code === 'pm10') pm10 = p.concentration.value;
+          });
+          // 获取AQI等级
+          let aqi = null, category = '';
+          if (data.indexes && data.indexes.length > 0) {
+            const idx = data.indexes[0];
+            aqi = idx.aqi;
+            category = idx.category;
+          }
+          return { current: { pm2_5: pm25, pm10: pm10, aqi: aqi, category: category }, daily: { pm2_5: [pm25], pm10: [pm10] } };
+        }
+        return { current: null, daily: null };
+      } catch (e) {
+        console.error('获取空气质量失败:', city.name, e);
+        return { current: null, daily: null };
+      }
+    }
+
+    // 获取空气质量每日预报（和风天气）
+    async function fetchAirQualityDaily(city) {
+      try {
+        const url = `https://${QWEATHER_API_HOST}/airquality/v1/daily/${city.lat.toFixed(2)}/${city.lon.toFixed(2)}`;
+        console.log(`[AQI] 请求预报: ${url}`);
+        const res = await fetch(url, {
+          headers: { 'X-QW-Api-Key': QWEATHER_API_KEY }
+        });
+        const data = await res.json();
+        console.log(`[AQI] 预报响应:`, data);
+        if (data && data.days) {
+          const daily = data.days.map(d => {
+            let pm25 = null, pm10 = null;
+            if (d.pollutants) {
+              d.pollutants.forEach(p => {
+                if (p.code === 'pm2p5') pm25 = p.concentration.value;
+                if (p.code === 'pm10') pm10 = p.concentration.value;
+              });
+            }
+            return { pm2_5: pm25, pm10: pm10 };
+          });
+          return { daily: { pm2_5: daily.map(d => d.pm2_5), pm10: daily.map(d => d.pm10) } };
+        }
+        return null;
+      } catch (e) {
+        console.error('[AQI] 预报请求失败:', city.name, e);
+        return null;
+      }
+    }
+
+    // ==================== 地图切换状态管理 ====================
+    window.toggleState = { forecast: true, warning: true, typhoon: false };
+    window.showForecastPath = true;        // 预测路径显示开关
+    window.userForecastMode = false;        // 我要预报模式
+    window.userForecastData = [];           // 用户预报数据 [{lat,lon,level,windSpeed,color,period}]
+    window.userForecastLayer = null;        // 用户预报图层
+    window.userForecastTimers = [];          // 预报时间序列: 6,12,18,24,48,72,96
+    window.userForecastStep = 0;            // 当前预报步骤索引
+    window.weatherLayer = null;   // L.layerGroup 天气标记
+    window.warningLayer = null;   // L.layerGroup 预警标记
+    window.typhoonLayer = null;   // L.layerGroup 台风路径
+    window.cachedWeatherData = {}; // key: city.name
+    window.cachedWarningData = {}; // key: city.name
+    window.cachedTyphoonData = []; // 缓存的台风数据
+    window.typhoonPositions = {};  // 台风当前位置 {name: {lat, lon, color, windSpeed}}
+    window.weatherMapInitialized = false;
+    window.weatherMap = null;
+
+    // 渲染天气标记
+    async function renderWeatherMarkers() {
+      if (!window.weatherLayer) {
+        window.weatherLayer = L.layerGroup().addTo(window.weatherMap);
+      }
+      window.weatherLayer.clearLayers();
+      
+      for (const city of CITIES) {
+        // 使用缓存的数据
+        let weatherData = window.cachedWeatherData[city.name];
+        let airData = null;
+        if (!weatherData) {
+          weatherData = await fetchWeatherData(city);
+          airData = await fetchAirQuality(city);
+          // 额外获取和风天气3天空气质量预报
+          try {
+            const dailyAir = await fetchAirQualityDaily(city);
+            if (dailyAir && dailyAir.daily && dailyAir.daily.pm2_5 && dailyAir.daily.pm2_5.length > 0) {
+              airData = { ...airData, daily: dailyAir.daily };
+              console.log(`[AQI] ${city.name} 3天预报:`, dailyAir.daily.pm2_5);
+            } else {
+              console.warn(`[AQI] ${city.name} 预报数据为空`);
+            }
+          } catch(e) {
+            console.warn('空气质量预报获取失败:', city.name, e);
+          }
+          if (weatherData) window.cachedWeatherData[city.name] = { weatherData, airData };
+        } else {
+          airData = weatherData.airData;
+          weatherData = weatherData.weatherData;
+        }
+        
+        if (weatherData && weatherData.current) {
+          const current = weatherData.current;
+          const daily = weatherData.daily;
+          const weatherCode = current.weather_code;
+          const icon = getWeatherIcon(weatherCode);
+          
+          let highTemp = '--', lowTemp = '--';
+          if (daily && daily.temperature_2m_max && daily.temperature_2m_max[0]) {
+            highTemp = Math.round(daily.temperature_2m_max[0]);
+            lowTemp = Math.round(daily.temperature_2m_min[0]);
+          }
+          
+          const labelHtml = `
+            <div class="weather-label">
+              <span class="wl-city">${city.name}</span>
+              <span class="wl-icon">${icon}</span>
+              <span class="wl-temps">
+                <span class="wl-high">${highTemp}°</span>
+                <span class="wl-sep">/</span>
+                <span class="wl-low">${lowTemp}°</span>
+              </span>
+            </div>
+          `;
+          
+          const marker = L.marker([city.lat, city.lon], {
+            icon: L.divIcon({
+              html: labelHtml,
+              className: '',
+              iconSize: [0, 0],
+              iconAnchor: [0, 0]
+            })
+          }).addTo(window.weatherLayer);
+          
+          marker.on('click', function() {
+            showCityForecastPopup(city, weatherData, airData, window.cachedWarningData[city.name] || null);
+          });
+        }
+      }
+    }
+
+    // 渲染预警标记
+    async function renderWarningMarkers() {
+      if (!window.warningLayer) {
+        window.warningLayer = L.layerGroup().addTo(window.weatherMap);
+      }
+      window.warningLayer.clearLayers();
+      
+      for (const city of CITIES) {
+        let warning = window.cachedWarningData[city.name];
+        if (warning === undefined) {
+          warning = await fetchCityWarning(city);
+          window.cachedWarningData[city.name] = warning;
+        }
+        
+        if (warning) {
+          const warnColor = WARNING_LEVEL_COLORS[warning.color?.code] || WARNING_LEVEL_COLORS[warning.severity] || 'rgba(234,67,53,0.9)';
+          const warnIcon = WARNING_TYPE_ICONS[warning.eventType?.name] || '⚠️';
+          
+          const labelHtml = `
+            <div class="weather-label" style="cursor:pointer;">
+              <span class="wl-city" style="font-size:13px;">${city.name}</span>
+              <span class="wl-warning" style="background:${warnColor};display:inline-block;font-size:11px;color:#fff;padding:2px 8px;border-radius:4px;font-weight:bold;animation:warningPulse 1.5s ease-in-out infinite;">${warnIcon} ${warning.eventType?.name || '预警'}</span>
+            </div>
+          `;
+          
+          const marker = L.marker([city.lat, city.lon], {
+            icon: L.divIcon({
+              html: labelHtml,
+              className: '',
+              iconSize: [0, 0],
+              iconAnchor: [0, 0]
+            })
+          }).addTo(window.warningLayer);
+          
+          marker.on('click', function() {
+            showWarningOnlyPopup(city, warning);
+          });
+        }
+      }
+    }
+
+    // 仅显示预警信息弹窗
+    function showWarningOnlyPopup(city, warning) {
+      const warnColor = WARNING_LEVEL_COLORS[warning.color?.code] || WARNING_LEVEL_COLORS[warning.severity] || 'rgba(234,67,53,0.9)';
+      const warnIcon = WARNING_TYPE_ICONS[warning.eventType?.name] || '⚠️';
+      
+      const html = `
+        <div style="padding:12px;min-width:250px;max-width:320px;">
+          <div style="background:${warnColor}20;border-left:4px solid ${warnColor};padding:10px 14px;margin:-12px -12px 12px -12px;border-radius:4px 4px 0 0;">
+            <div style="font-weight:bold;color:${warnColor};font-size:16px;">${warnIcon} ${warning.eventType?.name || ''} ${warning.severity || ''}预警</div>
+            <div style="font-size:12px;color:#555;margin-top:4px;">${city.name}</div>
+          </div>
+          <div style="font-size:13px;color:#333;line-height:1.6;">
+            ${warning.headline ? `<div style="margin-bottom:6px;font-weight:bold;">${warning.headline}</div>` : ''}
+            ${warning.description ? `<div style="font-size:12px;color:#666;line-height:1.5;">${warning.description.slice(0, 300)}${warning.description.length > 300 ? '...' : ''}</div>` : ''}
+          </div>
+          ${warning.pubTime ? `<div style="font-size:11px;color:#999;margin-top:8px;border-top:1px solid #eee;padding-top:6px;">发布时间: ${new Date(warning.pubTime).toLocaleString('zh-CN')}</div>` : ''}
+        </div>
+      `;
+      
+      L.popup({ maxWidth: 350, className: 'weather-popup' })
+        .setLatLng([city.lat, city.lon])
+        .setContent(html)
+        .openOn(window.weatherMap);
+    }
+
+    // 渲染台风路径
+    async function renderTyphoonTracks() {
+      if (!window.typhoonLayer) {
+        window.typhoonLayer = L.layerGroup().addTo(window.weatherMap);
+      }
+      window.typhoonLayer.clearLayers();
+      
+      try {
+        let typhoonList = window.cachedTyphoonData;
+        if (typhoonList.length === 0) {
+          typhoonList = await fetchTyphoonList();
+          window.cachedTyphoonData = typhoonList;
+        }
+        
+        for (const tc of typhoonList) {
+          const trackData = await fetchTyphoonTrack(tc.id);
+          if (trackData && trackData.track && trackData.track.length > 1) {
+            const latlngs = trackData.track.map(p => [parseFloat(p.lat), parseFloat(p.lon)]);
+            
+            // 绘制台风路径线（实线，历史轨迹）
+            L.polyline(latlngs, {
+              color: '#e74c3c',
+              weight: 3,
+              opacity: 0.8
+            }).addTo(window.typhoonLayer);
+            
+            // 绘制台风路径点 - 按强度着色
+            trackData.track.forEach(p => {
+              const ws = parseFloat(p.windSpeed) || 0;
+              const color = getTyphoonIntensityColor(ws);
+              const intensityLabel = getTyphoonIntensityLabel(ws);
+              L.circleMarker([parseFloat(p.lat), parseFloat(p.lon)], {
+                radius: ws >= 51 ? 7 : ws >= 32.7 ? 5 : ws >= 24.5 ? 4 : 3,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.8,
+                weight: 1.5
+              }).bindTooltip(`${tc.name}\n${intensityLabel}\n风速: ${ws} m/s\n气压: ${p.pressure} hPa\n时间: ${p.time}`, {
+                direction: 'top'
+              }).addTo(window.typhoonLayer);
+            });
+            
+            // 标注台风名称和当前强度 - 无红色方框，仅台风图标
+            if (trackData.track.length > 0) {
+              const latest = trackData.track[trackData.track.length - 1];
+              const ws = parseFloat(latest.windSpeed) || 0;
+              const intensityLabel = getTyphoonIntensityLabel(ws);
+              const stormId = tc.id;
+              
+              const typhoonIcon = L.marker([parseFloat(latest.lat), parseFloat(latest.lon)], {
+                icon: L.divIcon({
+                  html: `<div style="font-size:32px;line-height:1;text-shadow:0 0 10px rgba(0,0,0,0.5);cursor:pointer;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));" class="typhoon-click" data-stormid="${stormId}">🌀</div>`,
+                  className: '',
+                  iconSize: [36, 36],
+                  iconAnchor: [18, 18]
+                })
+              }).addTo(window.typhoonLayer);
+              
+              typhoonIcon.on('click', function() {
+                showTyphoonDetail(stormId);
+              });
+              
+              // 台风名称标签
+              L.marker([parseFloat(latest.lat) + 1.5, parseFloat(latest.lon)], {
+                icon: L.divIcon({
+                  html: `<div style="color:#fff;font-size:13px;font-weight:bold;text-shadow:0 0 6px rgba(0,0,0,0.9),0 0 12px rgba(0,0,0,0.6);white-space:nowrap;text-align:center;">${tc.name}<br>${intensityLabel} ${ws}m/s</div>`,
+                  className: '',
+                  iconSize: [0, 0],
+                  iconAnchor: [0, 0]
+                })
+              }).addTo(window.typhoonLayer);
+              
+              // 绘制风圈（7级/10级/12级）
+              const lat = parseFloat(latest.lat);
+              const lon = parseFloat(latest.lon);
+              if (latest.windRadius30) {
+                const ne = parseFloat(latest.windRadius30.neRadius) || 0;
+                const se = parseFloat(latest.windRadius30.seRadius) || 0;
+                const sw = parseFloat(latest.windRadius30.swRadius) || 0;
+                const nw = parseFloat(latest.windRadius30.nwRadius) || 0;
+                const avg30 = (ne + se + sw + nw) / 4;
+                if (avg30 > 0) drawWindCircle(window.typhoonLayer, lat, lon, avg30, '#f1c40f', '7级风圈');
+              }
+              if (latest.windRadius50) {
+                const ne = parseFloat(latest.windRadius50.neRadius) || 0;
+                const se = parseFloat(latest.windRadius50.seRadius) || 0;
+                const sw = parseFloat(latest.windRadius50.swRadius) || 0;
+                const nw = parseFloat(latest.windRadius50.nwRadius) || 0;
+                const avg50 = (ne + se + sw + nw) / 4;
+                if (avg50 > 0) drawWindCircle(window.typhoonLayer, lat, lon, avg50, '#e67e22', '10级风圈');
+              }
+              if (latest.windRadius64) {
+                const ne = parseFloat(latest.windRadius64.neRadius) || 0;
+                const se = parseFloat(latest.windRadius64.seRadius) || 0;
+                const sw = parseFloat(latest.windRadius64.swRadius) || 0;
+                const nw = parseFloat(latest.windRadius64.nwRadius) || 0;
+                const avg64 = (ne + se + sw + nw) / 4;
+                if (avg64 > 0) drawWindCircle(window.typhoonLayer, lat, lon, avg64, 'rgba(231,76,60,0.25)', '12级风圈');
+              }
+              
+              // 保存当前台风位置供用户预报使用
+              window.currentTyphoonPosition = {
+                lat: parseFloat(latest.lat),
+                lon: parseFloat(latest.lon),
+                color: getTyphoonIntensityColor(parseFloat(latest.windSpeed) || 0)
+              };
+              
+              // 获取并绘制预报路径（受预测路径开关控制）
+              if (window.showForecastPath) {
+                try {
+                  const forecastData = await fetchTyphoonForecast(tc.id);
+                  if (forecastData && forecastData.length > 0) {
+                    // 获取当前台风位置（历史轨迹最后一个点）
+                    const currentLat = parseFloat(latest.lat);
+                    const currentLon = parseFloat(latest.lon);
+                    const currentWindSpeed = parseFloat(latest.windSpeed) || 0;
+                    const currentColor = getTyphoonIntensityColor(currentWindSpeed);
+                    
+                    // 预报路径包含当前台风位置作为起点
+                    const forecastLatlngs = [[currentLat, currentLon], ...forecastData.map(p => [parseFloat(p.lat), parseFloat(p.lon)])];
+                    
+                    // 绘制预报路径（虚线），第一段使用当前台风强度颜色
+                    L.polyline(forecastLatlngs, {
+                      color: currentColor,
+                      weight: 2,
+                      opacity: 0.6,
+                      dashArray: '8, 6'
+                    }).addTo(window.typhoonLayer);
+                  // 预报点按强度着色
+                  forecastData.forEach(p => {
+                    const ws = parseFloat(p.windSpeed) || 0;
+                    const color = getTyphoonIntensityColor(ws);
+                    const intensityLabel = getTyphoonIntensityLabel(ws);
+                    L.circleMarker([parseFloat(p.lat), parseFloat(p.lon)], {
+                      radius: 5,
+                      color: color,
+                      fillColor: '#fff',
+                      fillOpacity: 0.9,
+                      weight: 2.5
+                    }).bindTooltip(`${tc.name} 预报\n${intensityLabel}\n风速: ${ws} m/s\n气压: ${p.pressure} hPa\n时间: ${p.fxTime}`, {
+                      direction: 'top'
+                    }).addTo(window.typhoonLayer);
+                  });
+                }
+              } catch(e) { console.error('获取台风预报失败:', e); }
+              }  // end if showForecastPath
+            }
+          }
+        }
+      } catch (e) {
+        console.error('获取台风路径失败:', e);
+      }
+    }
+
+    // 显示台风详细资料卡
+    async function showTyphoonDetail(stormId) {
+      try {
+        const trackData = await fetchTyphoonTrack(stormId);
+        if (!trackData) return;
+        
+        const now = trackData.now;
+        if (!now) return;
+        
+        const windSpeed = parseFloat(now.windSpeed) || 0;
+        const pressure = parseFloat(now.pressure) || 0;
+        const moveSpeed = parseFloat(now.moveSpeed) || 0;
+        const moveDir = now.moveDir || '';
+        const type = getTyphoonType(now.type);
+        const intensityLabel = getTyphoonIntensityLabel(windSpeed);
+        const pubTime = now.pubTime ? new Date(now.pubTime).toLocaleString('zh-CN') : '';
+        
+        // 风圈信息
+        const r30 = now.windRadius30;
+        const r50 = now.windRadius50;
+        const r64 = now.windRadius64;
+        
+        let windCircleInfo = '';
+        if (r30) {
+          const ne = parseFloat(r30.neRadius)||0, se = parseFloat(r30.seRadius)||0;
+          const sw = parseFloat(r30.swRadius)||0, nw = parseFloat(r30.nwRadius)||0;
+          windCircleInfo += `<div style="margin-top:6px;font-size:12px;color:#f1c40f;">7级风圈: NE${ne}km SE${se}km SW${sw}km NW${nw}km</div>`;
+        }
+        if (r50) {
+          const ne = parseFloat(r50.neRadius)||0, se = parseFloat(r50.seRadius)||0;
+          const sw = parseFloat(r50.swRadius)||0, nw = parseFloat(r50.nwRadius)||0;
+          windCircleInfo += `<div style="font-size:12px;color:#e67e22;">10级风圈: NE${ne}km SE${se}km SW${sw}km NW${nw}km</div>`;
+        }
+        if (r64) {
+          const ne = parseFloat(r64.neRadius)||0, se = parseFloat(r64.seRadius)||0;
+          const sw = parseFloat(r64.swRadius)||0, nw = parseFloat(r64.nwRadius)||0;
+          windCircleInfo += `<div style="font-size:12px;color:#e74c3c;">12级风圈: NE${ne}km SE${se}km SW${sw}km NW${nw}km</div>`;
+        }
+        
+        const html = `
+          <div style="padding:12px;min-width:240px;max-width:320px;">
+            <div style="font-size:18px;font-weight:bold;color:#e74c3c;margin-bottom:4px;">🌀 ${trackData.name || ''}</div>
+            <div style="font-size:13px;color:#888;margin-bottom:10px;">${type} · ${intensityLabel}</div>
+            <div style="font-size:13px;color:#333;line-height:1.8;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <div style="background:#f8f9fa;border-radius:6px;padding:6px 10px;text-align:center;">
+                  <div style="font-size:11px;color:#888;">最大风速</div>
+                  <div style="font-size:15px;font-weight:bold;color:#e74c3c;">${windSpeed} m/s</div>
+                  <div style="font-size:11px;color:#999;">(${(windSpeed*3.6).toFixed(0)} km/h)</div>
+                </div>
+                <div style="background:#f8f9fa;border-radius:6px;padding:6px 10px;text-align:center;">
+                  <div style="font-size:11px;color:#888;">中心气压</div>
+                  <div style="font-size:15px;font-weight:bold;color:#333;">${pressure} hPa</div>
+                </div>
+                <div style="background:#f8f9fa;border-radius:6px;padding:6px 10px;text-align:center;">
+                  <div style="font-size:11px;color:#888;">移动速度</div>
+                  <div style="font-size:15px;font-weight:bold;color:#27ae60;">${moveSpeed} km/h</div>
+                </div>
+                <div style="background:#f8f9fa;border-radius:6px;padding:6px 10px;text-align:center;">
+                  <div style="font-size:11px;color:#888;">移动方向</div>
+                  <div style="font-size:15px;font-weight:bold;color:#27ae60;">${moveDir}</div>
+                </div>
+              </div>
+              <div style="margin-top:6px;font-size:12px;color:#666;">
+                <div>📍 位置: ${now.lat}°N, ${now.lon}°E</div>
+                <div>🕐 发布时间: ${pubTime}</div>
+              </div>
+              ${windCircleInfo ? `<div style="margin-top:6px;padding-top:6px;border-top:1px solid #eee;">${windCircleInfo}</div>` : ''}
+            </div>
+          </div>
+        `;
+        
+        L.popup({ maxWidth: 360, className: 'weather-popup' })
+          .setLatLng([parseFloat(now.lat), parseFloat(now.lon)])
+          .setContent(html)
+          .openOn(window.weatherMap);
+      } catch(e) {
+        console.error('获取台风详情失败:', e);
+      }
+    }
+
+    // 切换按钮点击处理
+    function setupToggleButtons() {
+      const buttons = document.querySelectorAll('.map-toggle-btn');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const toggle = this.dataset.toggle;
+          const isActive = window.toggleState[toggle];
+          
+          // 切换状态
+          window.toggleState[toggle] = !isActive;
+          this.classList.toggle('active');
+          this.classList.toggle(`active-${toggle}`);
+          
+          // 根据切换状态显示/隐藏图层
+          if (toggle === 'forecast') {
+            if (window.toggleState.forecast) {
+              if (window.weatherLayer) window.weatherMap.addLayer(window.weatherLayer);
+              // 如果预警也开启，添加预警图层
+              if (window.toggleState.warning && window.warningLayer) {
+                window.weatherMap.addLayer(window.warningLayer);
+              }
+            } else {
+              if (window.weatherLayer) window.weatherMap.removeLayer(window.weatherLayer);
+              // 如果预警单独开启，只显示预警
+              if (window.toggleState.warning && window.warningLayer) {
+                window.weatherMap.addLayer(window.warningLayer);
+              } else if (window.warningLayer) {
+                window.weatherMap.removeLayer(window.warningLayer);
+              }
+            }
+          } else if (toggle === 'warning') {
+            if (window.toggleState.warning) {
+              if (window.warningLayer) window.weatherMap.addLayer(window.warningLayer);
+            } else {
+              if (window.warningLayer) window.weatherMap.removeLayer(window.warningLayer);
+            }
+          } else if (toggle === 'typhoon') {
+            if (window.toggleState.typhoon) {
+              if (!window.typhoonDataLoaded) {
+                window.typhoonDataLoaded = true;
+                await renderTyphoonTracks();
+              } else if (window.typhoonLayer) {
+                window.weatherMap.addLayer(window.typhoonLayer);
+              }
+            } else {
+              if (window.typhoonLayer) window.weatherMap.removeLayer(window.typhoonLayer);
+            }
+          }
+        });
+      });
+    }
+
+    // 预测路径切换
+    function setupForecastPathToggle() {
+      const cb = document.getElementById('showForecastPath');
+      if (!cb) return;
+      cb.addEventListener('change', function() {
+        window.showForecastPath = this.checked;
+        // 重新渲染台风路径（只影响预报部分）
+        if (window.typhoonDataLoaded && window.typhoonLayer) {
+          renderTyphoonTracks();
+        }
+      });
+    }
+
+    // 用户预报模式
+    function setupUserForecast() {
+      const btn = document.getElementById('userForecastBtn');
+      const FORECAST_PERIODS = [6, 12, 18, 24, 48, 72, 96];
+      if (!btn) return;
+      
+      btn.addEventListener('click', async function() {
+        window.userForecastMode = !window.userForecastMode;
+        this.classList.toggle('active');
+        
+        const selector = document.getElementById('typhoonSelector');
+        if (window.userForecastMode) {
+          // 显示台风选择器，填入可用台风
+          selector.style.display = 'inline-block';
+          selector.innerHTML = '<option value="">加载中...</option>';
+          
+          // 清空旧数据，重新获取
+          window.typhoonPositions = {};
+          window.cachedTyphoonData = [];
+          
+          try {
+            console.log('[台风预报] 开始获取台风列表...');
+            const stormList = await fetchTyphoonList();
+            console.log('[台风预报] 获取到台风列表:', stormList);
+            window.cachedTyphoonData = stormList;
+            
+            if (stormList.length === 0) {
+              console.warn('[台风预报] 台风列表为空，可能API返回无活跃台风');
+              selector.innerHTML = '<option value="">API返回无活跃台风</option>';
+              return;
+            }
+            
+            // 获取每个台风的位置
+            let successCount = 0;
+            for (const storm of stormList) {
+              try {
+                console.log('[台风预报] 获取台风位置:', storm.name, storm.stormId);
+                const trackData = await fetchTyphoonTrack(storm.stormId);
+                if (trackData && trackData.now) {
+                  const now = trackData.now;
+                  const lat = parseFloat(now.latitude);
+                  const lon = parseFloat(now.longitude);
+                  const windSpeed = parseFloat(now.maxWindSpeed);
+                  const color = getTyphoonIntensityColor(windSpeed);
+                  window.typhoonPositions[storm.name] = { lat, lon, color, windSpeed };
+                  successCount++;
+                  console.log('[台风预报] 成功获取位置:', storm.name, lat, lon, windSpeed);
+                } else {
+                  console.warn('[台风预报] 台风无当前位置数据:', storm.name, trackData);
+                }
+              } catch (err) {
+                console.error('[台风预报] 获取台风位置失败:', storm.name, err);
+              }
+            }
+            
+            console.log('[台风预报] 成功获取', successCount, '/', stormList.length, '个台风位置');
+          } catch (err) {
+            console.error('[台风预报] 获取台风列表失败:', err);
+            selector.innerHTML = '<option value="">API请求失败: ' + err.message + '</option>';
+            return;
+          }
+          
+          selector.innerHTML = '<option value="">请选择台风</option>';
+          if (window.typhoonPositions && Object.keys(window.typhoonPositions).length > 0) {
+            Object.keys(window.typhoonPositions).forEach(name => {
+              const opt = document.createElement('option');
+              opt.value = name;
+              const pos = window.typhoonPositions[name];
+              opt.textContent = name + ' (' + pos.windSpeed + 'm/s)';
+              selector.appendChild(opt);
+            });
+          } else {
+            selector.innerHTML = '<option value="">暂无可用台风（请检查API配置）</option>';
+          }
+          window.userForecastData = [];
+          window.userForecastStep = 0;
+          if (!window.userForecastLayer) {
+            window.userForecastLayer = L.layerGroup().addTo(window.weatherMap);
+          }
+          window.weatherMap.getContainer().style.cursor = 'crosshair';
+          alert('请先在右边下拉框中选择要预报的台风，然后在地图上依次点击以下时段的预报位置：\n' + FORECAST_PERIODS.map(p => p + 'h').join(' → '));
+        } else {
+          selector.style.display = 'none';
+          window.weatherMap.getContainer().style.cursor = '';
+          window.userForecastStep = 0;
+          window.userForecastData = [];
+          // 清除用户预报图层
+          if (window.userForecastLayer) {
+            window.userForecastLayer.clearLayers();
+          }
+        }
+      });
+
+      // 手动添加台风按钮
+      const addBtn = document.getElementById('addTyphoonBtn');
+      if (addBtn) {
+        addBtn.addEventListener('click', function() {
+          const name = prompt('请输入台风名称（如：沙德尔）', '');
+          if (!name) return;
+          const lat = prompt('请输入台风当前纬度（如：20.5）', '');
+          if (!lat || isNaN(parseFloat(lat))) return;
+          const lon = prompt('请输入台风当前经度（如：120.5）', '');
+          if (!lon || isNaN(parseFloat(lon))) return;
+          const windSpeed = prompt('请输入台风当前最大风速(m/s)（如：25）', '20');
+          if (!windSpeed || isNaN(parseFloat(windSpeed))) return;
+          
+          const ws = parseFloat(windSpeed);
+          let color;
+          if (ws < 24.5) color = '#3498db';
+          else if (ws < 32.7) color = '#f1c40f';
+          else if (ws < 41.5) color = '#e67e22';
+          else if (ws < 51.0) color = '#e91e63';
+          else color = '#e74c3c';
+          
+          if (!window.typhoonPositions) window.typhoonPositions = {};
+          window.typhoonPositions[name] = { lat: parseFloat(lat), lon: parseFloat(lon), color, windSpeed: ws };
+          
+          const selector = document.getElementById('typhoonSelector');
+          if (selector) {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name + ' (' + ws + 'm/s)';
+            selector.appendChild(opt);
+            selector.value = name;
+          }
+          alert('台风 ' + name + ' 已添加！');
+        });
+      }
+
+      // 用户点击地图添加预报点
+      window.weatherMap.on('click', async function(e) {
+        if (!window.userForecastMode) return;
+        if (window.userForecastStep >= FORECAST_PERIODS.length) {
+          alert('所有时段的预报点已添加完毕！');
+          return;
+        }
+        
+        const period = FORECAST_PERIODS[window.userForecastStep];
+        const lat = e.latlng.lat.toFixed(2);
+        const lon = e.latlng.lng.toFixed(2);
+        
+        // 弹出窗口让用户填写级数和风速
+        const level = prompt(`请输入 ${period}h 预报时段的台风级数\n(如: 热带风暴、强热带风暴、台风、强台风、超强台风)`, '热带风暴');
+        if (!level) return;
+        
+        const windSpeed = prompt(`请输入 ${period}h 预报时段的中心最大风速 (m/s)`, '20');
+        if (!windSpeed || isNaN(parseFloat(windSpeed))) return;
+        
+        const ws = parseFloat(windSpeed);
+        // 根据级数确定颜色（与台风强度颜色一致）
+        let color;
+        if (ws < 24.5) color = '#3498db';      // 热带风暴 蓝
+        else if (ws < 32.7) color = '#f1c40f'; // 强热带风暴 黄
+        else if (ws < 41.5) color = '#e67e22'; // 台风 橙
+        else if (ws < 51.0) color = '#e91e63'; // 强台风 粉
+        else color = '#e74c3c';                 // 超强台风 红
+        
+        const point = {
+          lat: parseFloat(lat),
+          lon: parseFloat(lon),
+          period: period,
+          level: level,
+          windSpeed: ws,
+          color: color
+        };
+        
+        window.userForecastData.push(point);
+        window.userForecastStep++;
+        
+        // 在地图上标注
+        // 绘制连线
+        if (window.userForecastData.length === 1) {
+          // 第一个预报点：从选中的台风位置画线到预报点
+          const selector = document.getElementById('typhoonSelector');
+          const selectedName = selector ? selector.value : '';
+          let currentTyphoon = null;
+          if (selectedName && window.typhoonPositions && window.typhoonPositions[selectedName]) {
+            currentTyphoon = window.typhoonPositions[selectedName];
+          } else {
+            currentTyphoon = window.currentTyphoonPosition || null;
+          }
+          if (currentTyphoon) {
+            L.polyline([
+              [currentTyphoon.lat, currentTyphoon.lon],
+              [point.lat, point.lon]
+            ], {
+              color: currentTyphoon.color,  // 使用当前台风强度的颜色
+              weight: 2,
+              opacity: 0.7,
+              dashArray: '6, 4'
+            }).addTo(window.userForecastLayer);
+          }
+        } else if (window.userForecastData.length > 1) {
+          // 后续预报点：与上一个点连线
+          const prev = window.userForecastData[window.userForecastData.length - 2];
+          L.polyline([
+            [prev.lat, prev.lon],
+            [point.lat, point.lon]
+          ], {
+            color: prev.color,
+            weight: 2,
+            opacity: 0.7,
+            dashArray: '6, 4'
+          }).addTo(window.userForecastLayer);
+        }
+        
+        // 标注点
+        L.circleMarker([point.lat, point.lon], {
+          radius: 6,
+          color: color,
+          fillColor: '#fff',
+          fillOpacity: 0.9,
+          weight: 3
+        }).bindTooltip(`✏️ 个人预报\n时段: ${period}h\n等级: ${level}\n风速: ${ws} m/s`, {
+          direction: 'top'
+        }).addTo(window.userForecastLayer);
+        
+        // 时段标签
+        L.marker([point.lat + 0.5, point.lon], {
+          icon: L.divIcon({
+            html: `<div style="color:${color};font-size:11px;font-weight:bold;text-shadow:0 0 6px rgba(0,0,0,0.8);white-space:nowrap;background:rgba(0,0,0,0.5);padding:2px 6px;border-radius:4px;">${period}h</div>`,
+            className: '',
+            iconSize: [0, 0]
+          })
+        }).addTo(window.userForecastLayer);
+        
+        if (window.userForecastStep >= FORECAST_PERIODS.length) {
+          alert('所有时段预报点已添加完毕！\n路线将在5分钟后自动清除。');
+          // 5分钟后自动清除
+          setTimeout(() => {
+            if (window.userForecastLayer) {
+              window.userForecastLayer.clearLayers();
+              window.userForecastData = [];
+              window.userForecastStep = 0;
+              window.userForecastMode = false;
+              document.getElementById('userForecastBtn')?.classList.remove('active');
+              window.weatherMap.getContainer().style.cursor = '';
+            }
+          }, 5 * 60 * 1000);
+        }
+      });
+    }
+
+    // 初始化天气地图
+    async function initWeatherMap() {
+      if (window.weatherMapInitialized) return;
+      
+      // 创建地图
+      window.weatherMap = L.map('weather-map', {
+        preferCanvas: true
+      }).setView([35, 110], 4);
+      
+      // ==================== 天地图配置 ====================
+      const TIANDITU_TK = '8ff61ec7ce489623cfadedaecf242fd2';
+
+      // 天地图矢量底图
+      L.tileLayer('https://t{s}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=' + TIANDITU_TK, {
+        attribution: '&copy; 天地图',
+        subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
+        maxZoom: 18
+      }).addTo(window.weatherMap);
+      
+      // 天地图中文注记
+      L.tileLayer('https://t{s}.tianditu.gov.cn/cva_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cva&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=' + TIANDITU_TK, {
+        subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
+        maxZoom: 18
+      }).addTo(window.weatherMap);
+
+      // 创建图层组
+      window.weatherLayer = L.layerGroup().addTo(window.weatherMap);
+      window.warningLayer = L.layerGroup().addTo(window.weatherMap);
+      window.typhoonLayer = L.layerGroup();
+      window.typhoonDataLoaded = false;
+
+      // 并行加载天气和预警数据
+      await Promise.all([
+        renderWeatherMarkers(),
+        renderWarningMarkers()
+      ]);
+
+      // 如果台风按钮默认开启，加载台风数据
+      if (window.toggleState.typhoon) {
+        window.typhoonDataLoaded = true;
+        renderTyphoonTracks();
+      }
+
+      // 设置切换按钮
+      setupToggleButtons();
+      setupForecastPathToggle();
+      setupUserForecast();
+      
+      window.weatherMapInitialized = true;
+    }
+
+    // 显示城市天气预报弹窗
+    function showCityForecastPopup(city, weatherData, airData, warning) {
+      const current = weatherData.current;
+      const daily = weatherData.daily;
+      
+      const temp = Math.round(current.temperature_2m);
+      const feelsLike = Math.round(current.apparent_temperature);
+      const humidity = current.relative_humidity_2m;
+      const precip = current.precipitation;
+      const windSpeed = current.wind_speed_10m;
+      const windDir = current.wind_direction_10m;
+      const pressure = current.surface_pressure;
+      const visibility = current.visibility;
+      const weatherCode = current.weather_code;
+      const icon = getWeatherIcon(weatherCode);
+      const desc = getWeatherDesc(weatherCode);
+      
+      const windDirs = ['北', '东北偏北', '东北', '东北偏东', '东', '东南偏东', '东南', '东南偏南', '南', '西南偏南', '西南', '西南偏西', '西', '西北偏西', '西北', '西北偏北'];
+      const windDirIndex = Math.round(windDir / 22.5) % 16;
+      const windDirText = windDirs[windDirIndex];
+      
+      let pm25 = '—', pm10 = '—';
+      let pm25Level = '', pm10Level = '';
+      if (airData && airData.current) {
+        const p25 = airData.current.pm2_5;
+        const p10 = airData.current.pm10;
+        pm25 = p25 ? Math.round(p25) + ' μg' : '—';
+        pm10 = p10 ? Math.round(p10) + ' μg' : '—';
+        if (p25 !== null) pm25Level = p25 <= 35 ? '优' : p25 <= 75 ? '良' : p25 <= 115 ? '轻度' : p25 <= 150 ? '中度' : '重度';
+        if (p10 !== null) pm10Level = p10 <= 50 ? '优' : p10 <= 150 ? '良' : p10 <= 250 ? '轻度' : p10 <= 350 ? '中度' : '重度';
+      }
+      
+      const dayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      const windDirsShort = ['北', '东北', '东', '东南', '南', '西南', '西', '西北'];
+      
+      function getDailyAvg(hourlyData, field, dayIndex) {
+        if (!hourlyData || !hourlyData[field]) return '—';
+        const start = dayIndex * 8;
+        const end = Math.min(start + 8, hourlyData[field].length);
+        if (start >= end) return '—';
+        const vals = hourlyData[field].slice(start, end).filter(v => v !== null);
+        if (vals.length === 0) return '—';
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        if (field === 'visibility') return (avg / 1000).toFixed(1) + ' km';
+        if (field === 'surface_pressure') return Math.round(avg) + ' hPa';
+        return Math.round(avg) + '%';
+      }
+      
+      let daysHtml = '';
+      for (let i = 0; i < Math.min(7, daily.time.length); i++) {
+        const date = new Date(daily.time[i] + 'T12:00:00');
+        const dayName = i === 0 ? '今天' : i === 1 ? '明天' : dayNames[date.getDay()];
+        const dayIcon = getWeatherIcon(daily.weather_code[i]);
+        const high = Math.round(daily.temperature_2m_max[i]);
+        const low = Math.round(daily.temperature_2m_min[i]);
+        const rain = daily.precipitation_sum ? daily.precipitation_sum[i] : 0;
+        let dayDesc = getWeatherDesc(daily.weather_code[i]);
+        const wc = daily.weather_code[i];
+        if (wc >= 300 && wc < 600) {
+          dayDesc = getRainLevel(rain);
+        }
+        const wind = daily.wind_speed_10m_max ? Math.round(daily.wind_speed_10m_max[i]) : 0;
+        const windDirVal = daily.wind_direction_10m_dominant ? daily.wind_direction_10m_dominant[i] : null;
+        const windDirText = windDirVal !== null ? windDirsShort[Math.round(windDirVal / 45) % 8] : '—';
+        const avgHumidity = getDailyAvg(weatherData.hourly, 'relative_humidity_2m', i);
+        const avgPressure = getDailyAvg(weatherData.hourly, 'surface_pressure', i);
+        const avgVis = getDailyAvg(weatherData.hourly, 'visibility', i);
+        
+        let aqiText = '—';
+        // 今日(i=0)使用实时数据，未来3天(i=1,2,3)使用预报数据，之后不显示
+        if (i === 0) {
+          // 今日：使用实时空气质量数据
+          if (airData && airData.current && airData.current.pm2_5 != null) {
+            const p25 = airData.current.pm2_5;
+            const level = p25 <= 35 ? '优' : p25 <= 75 ? '良' : p25 <= 115 ? '轻度' : '中度';
+            aqiText = `PM2.5 ${level}`;
+          }
+        } else if (i >= 1 && i <= 3) {
+          // 未来3天：使用预报数据（索引偏移-1，因为预报从明日开始）
+          if (airData && airData.daily && airData.daily.pm2_5 && airData.daily.pm2_5[i - 1] != null) {
+            const p25 = airData.daily.pm2_5[i - 1];
+            const level = p25 <= 35 ? '优' : p25 <= 75 ? '良' : p25 <= 115 ? '轻度' : '中度';
+            aqiText = `PM2.5 ${level}`;
+          }
+        }
+        // i >= 4 时不显示AQI，保持"—"
+        
+        daysHtml += `
+          <div class="forecast-card">
+            <div class="fc-header">
+              <span class="fc-day">${dayName}</span>
+              <span class="fc-icon">${dayIcon}</span>
+              <span class="fc-desc">${dayDesc}</span>
+              <span class="fc-temps">
+                <span class="fc-high">${high}°</span>
+                <span class="fc-sep">/</span>
+                <span class="fc-low">${low}°</span>
+              </span>
+            </div>
+            <div class="fc-body">
+              <div class="fc-row">
+                <span class="fc-item">💧 湿度 ${avgHumidity}</span>
+                <span class="fc-item">💨 ${windDirText}风 ${wind}km/h</span>
+                <span class="fc-item">🌧️ ${rain.toFixed(1)}mm ${getRainLevel(rain)}</span>
+              </div>
+              <div class="fc-row">
+                <span class="fc-item">🔽 气压 ${avgPressure}</span>
+                <span class="fc-item">👁️ 能见度 ${avgVis}</span>
+                <span class="fc-item">🌬️ ${aqiText}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      let warningHtml = '';
+      if (warning) {
+        const warnColor = WARNING_LEVEL_COLORS[warning.color?.code] || WARNING_LEVEL_COLORS[warning.severity] || 'rgba(234,67,53,0.9)';
+        warningHtml = `
+          <div class="popup-warning" style="background:${warnColor}20;border-left:4px solid ${warnColor};padding:8px 12px;margin:-8px -12px 10px -12px;border-radius:4px;">
+            <div style="font-weight:bold;color:${warnColor};font-size:14px;">⚠️ ${warning.eventType?.name || ''} ${warning.severity || ''}预警</div>
+            <div style="font-size:12px;color:#555;margin-top:4px;">${warning.headline || ''}</div>
+            <div style="font-size:11px;color:#777;margin-top:2px;line-height:1.5;">${warning.description ? warning.description.slice(0, 200) + (warning.description.length > 200 ? '...' : '') : ''}</div>
+          </div>
+        `;
+      }
+      
+      const popupHtml = `
+        <div class="forecast-popup">
+          <div class="popup-header">
+            <h3>${icon} ${city.name}</h3>
+            <div class="sub-info">${desc} · 体感 ${feelsLike}°C</div>
+          </div>
+          ${warningHtml}
+          <div class="popup-body">
+            <div class="popup-section">
+              <div class="popup-grid">
+                <div class="popup-grid-item">
+                  <div class="label">🌡️ 气温</div>
+                  <div class="value warm">${temp}°C</div>
+                </div>
+                <div class="popup-grid-item">
+                  <div class="label">💧 湿度</div>
+                  <div class="value">${humidity}%</div>
+                </div>
+                <div class="popup-grid-item">
+                  <div class="label">💨 风速</div>
+                  <div class="value wind">${windSpeed} km/h</div>
+                  <div style="font-size:10px;color:#999">${windDirText}风</div>
+                </div>
+                <div class="popup-grid-item">
+                  <div class="label">🌧️ 降水量</div>
+                  <div class="value">${precip} mm ${getRainLevel(precip)}</div>
+                </div>
+                <div class="popup-grid-item">
+                  <div class="label">🔽 气压</div>
+                  <div class="value">${Math.round(pressure)} hPa</div>
+                </div>
+                <div class="popup-grid-item">
+                  <div class="label">👁️ 能见度</div>
+                  <div class="value">${visibility ? (visibility/1000).toFixed(1) + ' km' : '—'}</div>
+                </div>
+              </div>
+            </div>
+            <div class="popup-section">
+              <div class="popup-section-title">🌬️ 空气质量</div>
+              <div class="aqi-section">
+                <div class="aqi-row">
+                  <div class="aqi-item">
+                    <div class="aqi-label">PM2.5</div>
+                    <div class="aqi-value">${pm25}</div>
+                    <div><span class="aqi-badge" style="background:${pm25Level === '优' ? '#27ae60' : pm25Level === '良' ? '#f39c12' : '#e74c3c'}">${pm25Level}</span></div>
+                  </div>
+                  <div class="aqi-item">
+                    <div class="aqi-label">PM10</div>
+                    <div class="aqi-value">${pm10}</div>
+                    <div><span class="aqi-badge" style="background:${pm10Level === '优' ? '#27ae60' : pm10Level === '良' ? '#f39c12' : '#e74c3c'}">${pm10Level}</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="popup-section">
+              <div class="popup-section-title">📅 未来7天天气预报</div>
+              ${daysHtml}
+            </div>
+            <div class="popup-section">
+              <div class="popup-section-title">📈 气象要素趋势图</div>
+              <div class="chart-container">
+                <canvas id="forecastChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      L.popup({ maxWidth: 380, minWidth: 320, className: 'weather-popup' })
+        .setLatLng([city.lat, city.lon])
+        .setContent(popupHtml)
+        .openOn(window.weatherMap);
+      
+      setTimeout(() => {
+        const canvas = document.getElementById('forecastChart');
+        if (!canvas) return;
+        
+        const labels = [];
+        const highTemps = [];
+        const lowTemps = [];
+        const pressures = [];
+        const windSpeeds = [];
+        const rains = [];
+        
+        for (let i = 0; i < Math.min(7, daily.time.length); i++) {
+          const date = new Date(daily.time[i] + 'T12:00:00');
+          const dayName = i === 0 ? '今天' : i === 1 ? '明天' : (date.getMonth()+1)+'/'+date.getDate();
+          labels.push(dayName);
+          highTemps.push(Math.round(daily.temperature_2m_max[i]));
+          lowTemps.push(Math.round(daily.temperature_2m_min[i]));
+          const press = getDailyAvg(weatherData.hourly, 'surface_pressure', i);
+          pressures.push(press !== '—' ? parseInt(press) : null);
+          const wind = daily.wind_speed_10m_max ? Math.round(daily.wind_speed_10m_max[i]) : 0;
+          windSpeeds.push(wind);
+          const rain = daily.precipitation_sum ? daily.precipitation_sum[i] : 0;
+          rains.push(rain);
+        }
+        
+        if (window._forecastChart) window._forecastChart.destroy();
+        
+        window._forecastChart = new Chart(canvas, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              { label: '最高温(°C)', data: highTemps, borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#e74c3c', borderWidth: 2, fill: false, yAxisID: 'y' },
+              { label: '最低温(°C)', data: lowTemps, borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,0.1)', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3498db', borderWidth: 2, fill: false, yAxisID: 'y' },
+              { label: '气压(hPa)', data: pressures, borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.1)', tension: 0.3, pointRadius: 3, pointBackgroundColor: '#e67e22', borderWidth: 1.5, borderDash: [5, 3], fill: false, yAxisID: 'y1' },
+              { label: '风速(km/h)', data: windSpeeds, borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.1)', tension: 0.3, pointRadius: 3, pointBackgroundColor: '#2ecc71', borderWidth: 1.5, borderDash: [3, 3], fill: false, yAxisID: 'y2' },
+              { label: '降水量(mm)', data: rains, type: 'bar', backgroundColor: 'rgba(52,152,219,0.3)', borderColor: 'rgba(52,152,219,0.5)', borderWidth: 1, borderRadius: 2, yAxisID: 'y3', order: 5 }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
+              tooltip: { backgroundColor: 'rgba(0,0,0,0.8)', titleFont: { size: 12 }, bodyFont: { size: 11 }, padding: 8 }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+              y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '温度 (°C)', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 9 } } },
+              y1: { type: 'linear', display: true, position: 'right', title: { display: true, text: '气压 (hPa)', font: { size: 10 } }, grid: { display: false }, ticks: { font: { size: 9 } } },
+              y2: { type: 'linear', display: false, position: 'right', grid: { display: false } },
+              y3: { type: 'linear', display: false, position: 'right', grid: { display: false } }
+            }
+          }
+        });
+      }, 100);
+    }
+
+    
+
+    // ========== 初始化第三个头像 ==========
+    const avatarImgTertiary = document.getElementById('avatar-img-tertiary');
+    const avatarPlaceholderTertiary = document.getElementById('avatar-placeholder-tertiary');
+    
+    if (AVATAR_TERTIARY_URL && AVATAR_TERTIARY_URL.trim() !== '') {
+      avatarImgTertiary.src = AVATAR_TERTIARY_URL;
+      avatarImgTertiary.style.display = 'block';
+      avatarPlaceholderTertiary.style.display = 'none';
+    }
+
+    // ========== 控制第三个头像显示/隐藏 ==========
+    function updateTertiaryAvatarVisibility(show) {
+      const avatarTertiary = document.getElementById('avatar-tertiary');
+      if (show) {
+        avatarTertiary.classList.add('show');
+      } else {
+        avatarTertiary.classList.remove('show');
+      }
+    }
+
+    // ========== 台风动画生成页面功能 ==========
+    const API_BASE_URL = 'http://localhost:5000'; // API 服务器地址
+    
+    let currentTaskId = null;
+    let uploadedFile = null;
+    
+    // 上传区域交互
+    const uploadArea = document.getElementById('ta-upload-area');
+    const fileInput = document.getElementById('ta-file-input');
+    const fileInfo = document.getElementById('ta-file-info');
+    const fileName = document.getElementById('ta-file-name');
+    const clearFileBtn = document.getElementById('ta-clear-file');
+    const generateBtn = document.getElementById('ta-generate-btn');
+    
+    uploadArea.addEventListener('click', () => fileInput.click());
+    
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.classList.add('dragover');
+    });
+    
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.classList.remove('dragover');
+    });
+    
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.classList.remove('dragover');
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFileUpload(files[0]);
+      }
+    });
+    
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFileUpload(e.target.files[0]);
+      }
+    });
+    
+    clearFileBtn.addEventListener('click', () => {
+      uploadedFile = null;
+      fileInput.value = '';
+      fileInfo.style.display = 'none';
+      uploadArea.style.display = 'block';
+      generateBtn.disabled = true;
+    });
+    
+    async function handleFileUpload(file) {
+      if (!file.name.endsWith('.dat')) {
+        alert('请上传 .dat 格式的 ATCF 文件');
+        return;
+      }
+      
+      uploadedFile = file;
+      fileName.textContent = file.name;
+      fileInfo.style.display = 'flex';
+      uploadArea.style.display = 'none';
+      
+      // 上传文件到服务器
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch(`${API_BASE_URL}/api/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          currentTaskId = data.task_id;
+          generateBtn.disabled = false;
+        } else {
+          alert('上传失败：' + data.error);
+          uploadedFile = null;
+          fileInfo.style.display = 'none';
+          uploadArea.style.display = 'block';
+        }
+      } catch (error) {
+        alert('上传失败：' + error.message);
+        console.error('上传错误:', error);
+      }
+    }
+    
+    // 生成按钮
+    generateBtn.addEventListener('click', async () => {
+      if (!currentTaskId) {
+        alert('请先上传文件');
+        return;
+      }
+      
+      generateBtn.disabled = true;
+      document.getElementById('ta-progress-section').style.display = 'block';
+      document.getElementById('ta-result-section').style.display = 'none';
+      document.getElementById('ta-error-section').style.display = 'none';
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task_id: currentTaskId })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.status === 'completed') {
+          document.getElementById('ta-progress-fill').style.width = '100%';
+          document.getElementById('ta-progress-text').textContent = '生成完成！';
+          document.getElementById('ta-result-section').style.display = 'block';
+          document.getElementById('ta-result-message').textContent = '台风动画已成功生成！';
+          document.getElementById('ta-download-btn').href = `${API_BASE_URL}/api/download/${currentTaskId}`;
+        } else {
+          document.getElementById('ta-error-section').style.display = 'block';
+          document.getElementById('ta-error-message').textContent = data.error || '生成失败';
+        }
+      } catch (error) {
+        document.getElementById('ta-error-section').style.display = 'block';
+        document.getElementById('ta-error-message').textContent = '请求失败：' + error.message;
+      } finally {
+        generateBtn.disabled = false;
+      }
+    });
+    
+    // 轮询任务状态（用于长时间任务）
+    async function pollTaskStatus(taskId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/status/${taskId}`);
+        const data = await response.json();
+        
+        if (data.status === 'processing') {
+          document.getElementById('ta-progress-text').textContent = data.message || '处理中...';
+          setTimeout(() => pollTaskStatus(taskId), 2000);
+        } else if (data.status === 'completed') {
+          document.getElementById('ta-progress-fill').style.width = '100%';
+          document.getElementById('ta-progress-text').textContent = '生成完成！';
+          document.getElementById('ta-result-section').style.display = 'block';
+          document.getElementById('ta-result-message').textContent = '台风动画已成功生成！';
+          document.getElementById('ta-download-btn').href = `${API_BASE_URL}/api/download/${taskId}`;
+          generateBtn.disabled = false;
+        } else if (data.status === 'error') {
+          document.getElementById('ta-error-section').style.display = 'block';
+          document.getElementById('ta-error-message').textContent = data.message || '生成失败';
+          generateBtn.disabled = false;
+        }
+      } catch (error) {
+        console.error('状态查询失败:', error);
+      }
+    }
+
+    // ========== 初始化 ==========
+    renderChaseGrid();
+  </script>
+</body>
+</html>
