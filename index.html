@@ -2302,6 +2302,32 @@ const INFO_VALUE_SIZE = '13px';
       });
     });
 
+    // ========== 工具下拉菜单选项点击 ==========
+    document.querySelectorAll('#tools-dropdown .dropdown-item').forEach(item => {
+      item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const page = this.dataset.page;
+        
+        // 关闭所有下拉菜单
+        document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
+        
+        // 隐藏所有页面
+        homePage.classList.remove('active');
+        homePage.classList.add('hidden');
+        chasePage.classList.remove('active');
+        detailPage.classList.remove('active');
+        weatherMapPage.classList.remove('active');
+        onlineWeatherPage.classList.remove('active');
+        typhoonAnimationPage.classList.remove('active');
+        
+        if (page === 'typhoon-animation') {
+          typhoonAnimationPage.classList.add('active');
+          updateSecondaryAvatarVisibility(false);
+          updateTertiaryAvatarVisibility(true);
+        }
+      });
+    });
+
     // ========== 天气地图 ==========
     // 主要城市列表（含经纬度）
     const CITIES = [
@@ -3716,7 +3742,7 @@ const INFO_VALUE_SIZE = '13px';
     }
 
     // ========== 台风动画生成页面功能 ==========
-    const API_BASE_URL = 'http://localhost:5000'; // API 服务器地址
+    const API_BASE_URL = 'https://outfield-plausibly-antsy.ngrok-free.dev'; // API 服务器地址（ngrok 永久域名）
     
     let currentTaskId = null;
     let uploadedFile = null;
