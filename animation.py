@@ -27,6 +27,7 @@ from fractions import Fraction
 from functools import reduce
 from math import gcd
 from pathlib import Path
+from flask import Flask, request, jsonify, send_file, send_from_directory
 
 
 ROOT = Path(__file__).resolve().parent
@@ -612,7 +613,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="制作 ATCF/BTK 热带气旋路径动画")
     parser.add_argument(
         "--dat", type=Path, action="append",
-        help="指定 tc_tracks 中的一个 BTK .dat；可重复使用，省略时读取其中全部 .dat",
+        help="指定 BTK .dat 文件路径（绝对路径或 tc_tracks 中的文件名）；可重复使用，省略时读取 tc_tracks 中全部 .dat",
     )
     parser.add_argument("--output", type=Path, help="覆盖 config.py 中的输出路径")
     return parser.parse_args()
@@ -667,21 +668,15 @@ def optional_asset_path(
 
 
 def find_dats(requested: list[Path] | None) -> list[Path]:
-    tracks_root = TRACKS_DIR.resolve()
     if requested:
         paths: list[Path] = []
         for path in requested:
-            candidate = (
-                path.resolve()
-                if path.is_absolute()
-                else (TRACKS_DIR / path).resolve()
-            )
-            try:
-                candidate.relative_to(tracks_root)
-            except ValueError as exc:
-                raise SystemExit(
-                    f"BTK 文件只能从 tc_tracks 读取：{path}"
-                ) from exc
+            if path.is_absolute():
+                candidate = path.resolve()
+            elif path.exists():
+                candidate = path.resolve()
+            else:
+                candidate = (TRACKS_DIR / path).resolve()
             paths.append(candidate)
         missing = [path for path in paths if not path.exists()]
         if missing:
@@ -3770,7 +3765,8 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
         timeline_reader.close()
     print(f"\r编码完成：{total_frames}/{total_frames} 帧")
     print(f"输出：{output_path.resolve()}")
-    input("请按任意键继续...")
+    if sys.stdin.isatty():
+        input("请按任意键继续...")
 
 
 def main() -> None:
