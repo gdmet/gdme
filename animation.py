@@ -28,6 +28,7 @@ from functools import reduce
 from math import gcd
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parent
 GENERATION_CACHE = ROOT / "generation_cache"
 CACHE_SESSION = f"{os.getpid()}_{time.time_ns():x}"
@@ -3050,8 +3051,7 @@ def draw_ace_bar(
 
 
 def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
-    # Validate every mandatory external asset before parsing or preprocessing.
-    # Intro and music are the only deliberately optional media inputs.
+    print("[STEP 4/12] 验证必需素材（地图、时间线视频、字体）", flush=True)
     map_path = required_asset_path(cfg, "map_file", IMAGE_ASSET_EXTENSIONS)
     timeline_path = required_asset_path(
         cfg, "timeline_video_file", VIDEO_ASSET_EXTENSIONS
@@ -3063,9 +3063,11 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
         raise SystemExit(f"无法读取必需字体：{font_path}") from exc
 
     cleanup_stale_preprocess_cache()
+    print("[STEP 5/12] 解析 BTK 数据文件", flush=True)
     tracks = [SeasonTrack(path, parse_btk(path, cfg)) for path in dat_paths]
     # Painter's order: older storms first, newer storms last/on top.
     tracks.sort(key=lambda track: (track.points[0].time, track.path.name.lower()))
+    print("[STEP 6/12] 构建 ACE 统计序列", flush=True)
     ace_series = (
         AceSeries(dat_paths, bool(cfg.get("ace_includes_subtc", False)))
         if cfg.get("show_ace_bar", True)
@@ -3073,7 +3075,9 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
     )
     if ace_series is not None:
         print(f"ACE：最终 {ace_series.total:.4f}")
+    print("[STEP 7/12] 发现台风图标素材", flush=True)
     materials = discover_materials()
+    print("[STEP 8/12] 探测素材参数", flush=True)
     infos = {state: probe_clip(state, path, cfg) for state, path in materials.items()}
     if not infos:
         raise SystemExit("没有在 tc_icons 文件夹中找到可用的 MP4 图标素材")
@@ -3092,6 +3096,7 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
         raise SystemExit(f"缺少状态素材：{', '.join(missing)}")
     # Landfalls must be known before the season timeline is built: a late
     # one-shot effect extends the final active moment by its remaining runtime.
+    print("[STEP 9/12] 检测登陆点", flush=True)
     landfalls: list[Landfall] = []
     landfall_infos: dict[str, ClipInfo] = {}
     if cfg.get("show_landfall_effects", True):
@@ -3160,7 +3165,9 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
             )
         final_landfall_effect_end = max(effect_ends)
 
+    print("[STEP 10/12] 构建时间线", flush=True)
     timeline = SeasonTimeline(tracks, cfg, final_landfall_effect_end)
+    print("[STEP 11/12] 初始化相机控制器", flush=True)
     planned_camera_controller = (
         CameraController(timeline, tracks, cfg, 16.0 / 9.0)
         if cfg.get("auto_zoom", True)
@@ -3355,6 +3362,7 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     render_started = time.perf_counter()
+    print("[STEP 12/12] 开始编码视频帧", flush=True)
     encoder_name = select_encoder(cfg, fps)
     print(
         "编码器："
@@ -3762,15 +3770,17 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
     if timeline_reader is not None:
         timeline_reader.close()
     print(f"\r编码完成：{total_frames}/{total_frames} 帧")
-    print(f"输出：{output_path.resolve()}")
+    print(f"[DONE] 输出：{output_path.resolve()}", flush=True)
     if sys.stdin.isatty():
         input("请按任意键继续...")
 
 
 def main() -> None:
-    print("风季动画自动化制作程序启动！")
+    print("[STEP 1/12] 解析参数", flush=True)
     args = parse_args()
+    print("[STEP 2/12] 加载配置文件", flush=True)
     cfg = load_config(ROOT / "config.py")
+    print("[STEP 3/12] 查找数据文件", flush=True)
     dat_paths = find_dats(args.dat)
     configured_output = Path(cfg["output"])
     output_path = args.output or configured_output
@@ -3778,10 +3788,10 @@ def main() -> None:
         output_path = ROOT / output_path
     try:
         render(dat_paths, output_path, cfg)
+    except SystemExit as exc:
+        print(f"[ERROR] {exc}", flush=True)
+        raise
     finally:
-        # TC and landfall frame arrays are tied to this render and cannot be
-        # reused safely. Timeline proxies remain in generation_cache because
-        # their filenames fully describe reusable source/crop parameters.
         cleanup_session_preprocess_cache()
 
 

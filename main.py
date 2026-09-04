@@ -36,33 +36,96 @@ OUTPUT_FOLDER.mkdir(exist_ok=True)
 tasks = {}
 
 
+import re as _re
+
+_STEP_RE = _re.compile(r'^\[STEP (\d+)/(\d+)\]\s*(.+)$')
+_ERROR_RE = _re.compile(r'^\[ERROR\]\s*(.+)$')
+_DONE_RE = _re.compile(r'^\[DONE\]\s*(.+)$')
+
+TOTAL_STEPS = 12
+
+
 def run_animation_task(task_id, dat_files, output_path, animation_script):
-    """在后台线程中执行动画生成"""
+    """在后台线程中执行动画生成，实时捕获输出并解析分步进度"""
     task = tasks[task_id]
+    task['log'] = []
+    task['current_step'] = 0
+    task['failed_step'] = None
+    task['error_detail'] = None
     try:
         cmd = [
-            sys.executable, str(animation_script),
+            sys.executable, '-u', str(animation_script),
             '--dat', str(dat_files[0]),
             '--output', str(output_path)
         ]
-        result = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=1800,
-            cwd=str(PROJECT_ROOT)
+            cwd=str(PROJECT_ROOT),
+            bufsize=1,
         )
-        if result.returncode == 0 and output_path.exists():
+
+        last_step = 0
+        for line in proc.stdout:
+            line = line.rstrip('\n')
+            task['log'].append(line)
+
+            m = _STEP_RE.match(line)
+            if m:
+                step_num = int(m.group(1))
+                last_step = step_num
+                task['current_step'] = step_num
+                task['progress'] = int(step_num / TOTAL_STEPS * 95)
+                task['message'] = f'步骤 {step_num}/{TOTAL_STEPS}：{m.group(3)}'
+                continue
+
+            m = _ERROR_RE.match(line)
+            if m:
+                task['failed_step'] = last_step
+                task['error_detail'] = m.group(1)
+                continue
+
+            m = _DONE_RE.match(line)
+            if m:
+                task['current_step'] = TOTAL_STEPS
+                task['progress'] = 100
+                continue
+
+        proc.wait(timeout=1800)
+        stderr_output = proc.stderr.read() if proc.stderr else ''
+        if stderr_output.strip():
+            task['log'].append(f'[STDERR] {stderr_output.strip()}')
+
+        if proc.returncode == 0 and output_path.exists():
             task['status'] = 'completed'
             task['progress'] = 100
             task['output'] = output_path.name
             task['message'] = '动画生成成功'
         else:
             task['status'] = 'error'
-            task['message'] = f'生成失败: {result.stderr[:500]}'
+            if task.get('error_detail'):
+                step_label = (
+                    f'步骤 {task["failed_step"]}/{TOTAL_STEPS}'
+                    if task.get('failed_step') else '未知步骤'
+                )
+                task['message'] = (
+                    f'生成失败（{step_label}）：{task["error_detail"]}'
+                )
+            elif stderr_output.strip():
+                task['message'] = f'生成失败: {stderr_output.strip()[:500]}'
+            else:
+                task['message'] = (
+                    f'生成失败（退出码 {proc.returncode}），'
+                    f'最后完成到步骤 {last_step}/{TOTAL_STEPS}'
+                )
     except subprocess.TimeoutExpired:
+        proc.kill()
         task['status'] = 'error'
-        task['message'] = '生成超时（超过30分钟）'
+        task['message'] = (
+            f'生成超时（超过30分钟），最后完成到步骤 {task.get("current_step", 0)}/{TOTAL_STEPS}'
+        )
     except Exception as e:
         task['status'] = 'error'
         task['message'] = str(e)
@@ -149,7 +212,7 @@ def generate_animation():
 
 @app.route('/api/status/<task_id>', methods=['GET'])
 def get_status(task_id):
-    """查询任务状态"""
+    """查询任务状态（含分步诊断信息）"""
     if task_id not in tasks:
         return jsonify({'error': '任务不存在'}), 404
 
@@ -159,7 +222,24 @@ def get_status(task_id):
         'status': task['status'],
         'progress': task['progress'],
         'message': task['message'],
-        'output': task.get('output')
+        'output': task.get('output'),
+        'current_step': task.get('current_step', 0),
+        'total_steps': TOTAL_STEPS,
+        'failed_step': task.get('failed_step'),
+        'error_detail': task.get('error_detail'),
+    })
+
+
+@app.route('/api/log/<task_id>', methods=['GET'])
+def get_log(task_id):
+    """获取任务完整运行日志"""
+    if task_id not in tasks:
+        return jsonify({'error': '任务不存在'}), 404
+
+    task = tasks[task_id]
+    return jsonify({
+        'task_id': task_id,
+        'log': task.get('log', []),
     })
 
 
