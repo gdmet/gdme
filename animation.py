@@ -52,30 +52,16 @@ def cleanup_stale_preprocess_cache() -> None:
                 # That run has its own session suffix, so it is safe to skip.
                 pass
 
-_missing_imports = []
 try:
     import av
-except ImportError as exc:
-    _missing_imports.append(f'av ({exc})')
-try:
     import cv2
-except ImportError as exc:
-    _missing_imports.append(f'cv2 ({exc})')
-try:
     import numpy as np
-except ImportError as exc:
-    _missing_imports.append(f'numpy ({exc})')
-try:
     from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFilter, ImageFont
 except ImportError as exc:
-    _missing_imports.append(f'PIL ({exc})')
-if _missing_imports:
-    print(f"[DIAG FAIL] P4-17: 导入依赖包 — 原因: 缺少 {', '.join(_missing_imports)}", flush=True)
     raise SystemExit(
         "缺少运行环境。请先双击 env_initialize.bat。\n"
-        f"缺失模块：{', '.join(_missing_imports)}"
-    )
-print("[DIAG PASS] P4-17: 导入依赖包", flush=True)
+        f"原始错误：{exc}"
+    ) from exc
 
 
 SESSION_MEMMAPS: list[np.memmap] = []
@@ -3074,36 +3060,11 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
     try:
         ImageFont.truetype(str(font_path), 12)
     except OSError as exc:
-        print(f"[DIAG FAIL] P4-20: 检查素材文件存在 — 原因: 无法读取字体 {font_path}", flush=True)
         raise SystemExit(f"无法读取必需字体：{font_path}") from exc
-
-    asset_checks = [
-        ("map_file", map_path),
-        ("timeline_video_file", timeline_path),
-        ("font_file", font_path),
-    ]
-    missing_assets = [name for name, p in asset_checks if not p.is_file()]
-    if missing_assets:
-        print(f"[DIAG FAIL] P4-20: 检查素材文件存在 — 原因: {', '.join(missing_assets)} 不存在", flush=True)
-        raise SystemExit(f"找不到必需素材：{', '.join(missing_assets)}")
-    print("[DIAG PASS] P4-20: 检查素材文件存在", flush=True)
 
     cleanup_stale_preprocess_cache()
     print("[STEP 5/12] 解析 BTK 数据文件", flush=True)
-    tracks = []
-    for path in dat_paths:
-        try:
-            points = parse_btk(path, cfg)
-            if not points:
-                print(f"[DIAG FAIL] P4-21: 解析 .dat 文件 — 原因: {path.name} 解析结果为空", flush=True)
-                raise SystemExit(f"数据文件解析为空：{path.name}")
-            tracks.append(SeasonTrack(path, points))
-        except SystemExit:
-            raise
-        except Exception as exc:
-            print(f"[DIAG FAIL] P4-21: 解析 .dat 文件 — 原因: {exc}", flush=True)
-            raise SystemExit(f"解析 {path.name} 失败：{exc}") from exc
-    print(f"[DIAG PASS] P4-21: 解析 .dat 文件（{len(tracks)} 个气旋）", flush=True)
+    tracks = [SeasonTrack(path, parse_btk(path, cfg)) for path in dat_paths]
     # Painter's order: older storms first, newer storms last/on top.
     tracks.sort(key=lambda track: (track.points[0].time, track.path.name.lower()))
     print("[STEP 6/12] 构建 ACE 统计序列", flush=True)
@@ -3116,22 +3077,10 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
         print(f"ACE：最终 {ace_series.total:.4f}")
     print("[STEP 7/12] 发现台风图标素材", flush=True)
     materials = discover_materials()
-    if not materials:
-        print("[DIAG FAIL] P4-22: 探测图标素材 — 原因: tc_icons 文件夹中未找到任何 MP4", flush=True)
-        raise SystemExit("没有在 tc_icons 文件夹中找到可用的 MP4 图标素材")
-    print(f"[DIAG PASS] P4-22: 探测图标素材（{len(materials)} 种状态）", flush=True)
     print("[STEP 8/12] 探测素材参数", flush=True)
-    infos = {}
-    for state, path in materials.items():
-        try:
-            infos[state] = probe_clip(state, path, cfg)
-        except Exception as exc:
-            print(f"[DIAG FAIL] P4-23: 预处理图标({state}) — 原因: {exc}", flush=True)
-            raise SystemExit(f"探测素材 {path.name} 失败：{exc}") from exc
+    infos = {state: probe_clip(state, path, cfg) for state, path in materials.items()}
     if not infos:
-        print("[DIAG FAIL] P4-23: 预处理图标 — 原因: 所有素材探测均失败", flush=True)
         raise SystemExit("没有在 tc_icons 文件夹中找到可用的 MP4 图标素材")
-    print(f"[DIAG PASS] P4-23: 预处理图标（{len(infos)} 种状态）", flush=True)
 
     loop_period = gcd_fraction([info.duration for info in infos.values()])
     if loop_period <= 0:
@@ -3217,29 +3166,13 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
         final_landfall_effect_end = max(effect_ends)
 
     print("[STEP 10/12] 构建时间线", flush=True)
-    try:
-        timeline = SeasonTimeline(tracks, cfg, final_landfall_effect_end)
-        seg_count = len(timeline.segments)
-        if seg_count == 0:
-            print("[DIAG FAIL] P4-25: 构建时间线 — 原因: segments 列表为空", flush=True)
-            raise SystemExit("时间线构建失败：segments 为空")
-        print(f"[DIAG PASS] P4-25: 构建时间线（{seg_count} 个分段）", flush=True)
-    except SystemExit:
-        raise
-    except Exception as exc:
-        print(f"[DIAG FAIL] P4-25: 构建时间线 — 原因: {exc}", flush=True)
-        raise SystemExit(f"时间线构建失败：{exc}") from exc
+    timeline = SeasonTimeline(tracks, cfg, final_landfall_effect_end)
     print("[STEP 11/12] 初始化相机控制器", flush=True)
-    planned_camera_controller = None
-    if cfg.get("auto_zoom", True):
-        try:
-            planned_camera_controller = CameraController(timeline, tracks, cfg, 16.0 / 9.0)
-            print(f"[DIAG PASS] P4-26: 构建相机控制器", flush=True)
-        except Exception as exc:
-            print(f"[DIAG FAIL] P4-26: 构建相机控制器 — 原因: {exc}", flush=True)
-            raise SystemExit(f"相机控制器初始化失败：{exc}") from exc
-    else:
-        print("[DIAG PASS] P4-26: 构建相机控制器（已禁用自动缩放，跳过）", flush=True)
+    planned_camera_controller = (
+        CameraController(timeline, tracks, cfg, 16.0 / 9.0)
+        if cfg.get("auto_zoom", True)
+        else None
+    )
     base_target_sizes = material_target_sizes(tracks, infos, cfg)
     maximum_zoom = max(
         (
@@ -3305,17 +3238,12 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
         else:
             print(f"片头：未找到 {intro_path.name}，跳过")
 
-    try:
-        timeline_info = ensure_timeline_proxy(
-            timeline_path,
-            cfg,
-            timeline_source_seconds(timeline.start, cfg),
-            timeline_source_seconds(timeline.end, cfg),
-        )
-        print(f"[DIAG PASS] P4-24: 预处理时间轴", flush=True)
-    except Exception as exc:
-        print(f"[DIAG FAIL] P4-24: 预处理时间轴 — 原因: {exc}", flush=True)
-        raise SystemExit(f"时间轴预处理失败：{exc}") from exc
+    timeline_info = ensure_timeline_proxy(
+        timeline_path,
+        cfg,
+        timeline_source_seconds(timeline.start, cfg),
+        timeline_source_seconds(timeline.end, cfg),
+    )
     timeline_reader: TimelineReader | None = TimelineReader(timeline_info, cfg)
     print(
         f"Timeline: {timeline_path.name} -> "
@@ -3453,8 +3381,6 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
         print("音乐库：为空，仅输出登陆素材音效")
     else:
         print("音乐库：为空，输出不含音轨")
-    print("[DIAG PASS] P4-27: 逐帧渲染（开始）", flush=True)
-    rendered_frames = 0
     with av.open(str(output_path), mode="w", options={"movflags": "+faststart"}) as container:
         stream = configure_encoder_stream(
             container, encoder_name, fps, width, height, cfg
@@ -3513,8 +3439,6 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
                 audio_cursor += sample_count
 
         def encode_canvas(canvas: Image.Image, frame_index: int) -> None:
-            nonlocal rendered_frames
-            rendered_frames += 1
             video_frame = av.VideoFrame.from_image(canvas)
             if encoder_name.endswith("_qsv"):
                 video_frame = video_frame.reformat(
@@ -3846,11 +3770,6 @@ def render(dat_paths: list[Path], output_path: Path, cfg: dict) -> None:
     if timeline_reader is not None:
         timeline_reader.close()
     print(f"\r编码完成：{total_frames}/{total_frames} 帧")
-    if rendered_frames >= total_frames:
-        print(f"[DIAG PASS] P4-27: 逐帧渲染（{rendered_frames}/{total_frames} 帧）", flush=True)
-    else:
-        print(f"[DIAG FAIL] P4-27: 逐帧渲染 — 原因: 仅渲染 {rendered_frames}/{total_frames} 帧", flush=True)
-    print(f"[DIAG PASS] P4-28: 编码输出（MP4 文件已写入）", flush=True)
     print(f"[DONE] 输出：{output_path.resolve()}", flush=True)
     if sys.stdin.isatty():
         input("请按任意键继续...")
@@ -3860,25 +3779,7 @@ def main() -> None:
     print("[STEP 1/12] 解析参数", flush=True)
     args = parse_args()
     print("[STEP 2/12] 加载配置文件", flush=True)
-    config_path = ROOT / "config.py"
-    if not config_path.is_file():
-        print(f"[DIAG FAIL] P4-18: 读取 config.py — 原因: {config_path} 不是文件", flush=True)
-        raise SystemExit(f"找不到配置文件：{config_path}")
-    try:
-        cfg = load_config(config_path)
-        print("[DIAG PASS] P4-18: 读取 config.py", flush=True)
-    except SystemExit as exc:
-        print(f"[DIAG FAIL] P4-18: 读取 config.py — 原因: {exc}", flush=True)
-        raise
-    required_keys = [
-        "longitude_left", "longitude_right", "latitude_bottom", "latitude_top",
-        "width", "height", "font_file",
-    ]
-    missing_keys = [k for k in required_keys if k not in cfg]
-    if missing_keys:
-        print(f"[DIAG FAIL] P4-19: 检查必要配置项 — 原因: 缺少 {', '.join(missing_keys)}", flush=True)
-        raise SystemExit(f"config.py 缺少必要配置：{', '.join(missing_keys)}")
-    print("[DIAG PASS] P4-19: 检查必要配置项", flush=True)
+    cfg = load_config(ROOT / "config.py")
     print("[STEP 3/12] 查找数据文件", flush=True)
     dat_paths = find_dats(args.dat)
     configured_output = Path(cfg["output"])
