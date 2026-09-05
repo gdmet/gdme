@@ -1951,7 +1951,7 @@ const INFO_VALUE_SIZE = '13px';
   <!-- 线上天气地图页面 -->
   <div class="online-weather-page" id="online-weather-page">
     <div class="online-weather-container">
-      <div class="online-weather-header">🌍 线上气象地图</div>
+      <div class="online-weather-header">🌍 在线卫星云图</div>
       <div class="ow-satellite-card" style="background-image:url('卫星云图界面背景.jpg')">
         <a class="ow-satellite-link" href="https://zoom.earth/" target="_blank" rel="noopener">
           交互式静轨卫星云图拼图
@@ -1965,9 +1965,8 @@ const INFO_VALUE_SIZE = '13px';
         <iframe src="https://www.ventusky.com/" class="ow-iframe" allowfullscreen loading="lazy"></iframe>
       </div>
       <div class="ow-item">
-        <div class="ow-label">Windy · 风场与天气图</div>
+        <div class="ow-label">Windy · 全能天气图</div>
         <iframe src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=23.5&lon=113.5&detailLat=23.13&detailLon=113.26&marker=true&message=true" class="ow-iframe" allowfullscreen loading="lazy"></iframe>
-        <div class="ow-vpn-tip">⚠️ 需使用魔法查看</div>
       </div>
       
     </div>
@@ -1978,7 +1977,7 @@ const INFO_VALUE_SIZE = '13px';
     <div class="ta-container">
       <div class="ta-header">
         <h1 class="ta-title">🌀 台风路径动画自动生成</h1>
-        <p class="ta-subtitle">上传 ATCF b-deck 文件，自动生成专业台风路径动画视频</p>
+        <p class="ta-subtitle">上传 ATCF b-deck 文件，自动生成台风路径动画视频</p>
       </div>
       
       <div class="ta-content">
@@ -2003,27 +2002,27 @@ const INFO_VALUE_SIZE = '13px';
           <div class="ta-features">
             <div class="ta-feature">
               <div class="ta-feature-icon">📍</div>
-              <div class="ta-feature-text">自动解析气旋位置、强度、性质、名称与状态变化</div>
+              <div class="ta-feature-text">根据报文自动确定TC位置、强度、性质、名称</div>
             </div>
             <div class="ta-feature">
-              <div class="ta-feature-icon"></div>
-              <div class="ta-feature-text">无需手工制作关键帧，自动生成平滑移动的气旋图标</div>
+              <div class="ta-feature-icon">🎨</div>
+              <div class="ta-feature-text">根据报文自动生成移动TC图标，切换动画自然，自动处理多气旋活动</div>
             </div>
             <div class="ta-feature">
-              <div class="ta-feature-icon">🔄</div>
-              <div class="ta-feature-text">保持不同强度素材的旋转相位连续、切换自然</div>
+              <div class="ta-feature-icon">⏰</div>
+              <div class="ta-feature-text">画面包含时间轴并自动根据台风活跃状况调整速度，路径自动绘制</div>
             </div>
             <div class="ta-feature">
               <div class="ta-feature-icon">⏩</div>
-              <div class="ta-feature-text">智能快进长时间无活动区间</div>
+              <div class="ta-feature-text">系统地图会按照时间比例给西太（70%），东太（10%），北大（15%），地中海等（5%）等地区地图上线；请按需选择对应地图在线时间制作</div>
             </div>
             <div class="ta-feature">
-              <div class="ta-feature-icon">️</div>
-              <div class="ta-feature-text">自动规划地图镜头，根据活跃区域平移和缩放</div>
+              <div class="ta-feature-icon">️🗺</div>
+              <div class="ta-feature-text">根据等距圆柱投影地图建立经纬坐标系，并根据活跃区域平移和缩放</div>
             </div>
             <div class="ta-feature">
               <div class="ta-feature-icon">🎵</div>
-              <div class="ta-feature-text">内置素材去黑边、预缩放、登陆检测与特效、ACE 统计、片头和背景音乐</div>
+              <div class="ta-feature-text">内置图标和登陆素材，自动色度抠图，自动进行登陆检测与特效、ACE 统计条（自动计算）</div>
             </div>
           </div>
         </div>
