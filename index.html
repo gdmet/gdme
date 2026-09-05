@@ -1943,7 +1943,7 @@ const INFO_VALUE_SIZE = '13px';
       <button class="user-forecast-btn" id="addTyphoonBtn" style="display:none;margin-left:6px;font-size:11px;padding:4px 10px;" title="手动添加台风"> 添加台风</button>
     </div>
     <div class="map-toggle-panel">
-      <button class="map-toggle-btn active active-forecast" data-toggle="forecast">🌤️ 天气预报</button>
+      <button class="map-toggle-btn" data-toggle="forecast">🌤️ 天气预报</button>
       <button class="map-toggle-btn active active-warning" data-toggle="warning">⚠️ 预警</button>
       <button class="map-toggle-btn" data-toggle="typhoon">🌀 台风路径</button>
     </div>
@@ -2712,7 +2712,8 @@ const INFO_VALUE_SIZE = '13px';
     }
 
     // ==================== 地图切换状态管理 ====================
-    window.toggleState = { forecast: true, warning: true, typhoon: false };
+    window.toggleState = { forecast: false, warning: true, typhoon: false };
+    window.weatherDataLoaded = false;
     window.showForecastPath = true;        // 预测路径显示开关
     window.userForecastMode = false;        // 我要预报模式
     window.userForecastData = [];           // 用户预报数据 [{lat,lon,level,windSpeed,color,period}]
@@ -2732,9 +2733,14 @@ const INFO_VALUE_SIZE = '13px';
     // 渲染天气标记
     async function renderWeatherMarkers() {
       if (!window.weatherLayer) {
-        window.weatherLayer = L.layerGroup().addTo(window.weatherMap);
+        // 按需创建（默认不加入地图，直到用户开启天气预报）
+        window.weatherLayer = L.layerGroup();
       }
       window.weatherLayer.clearLayers();
+      // 确保加载完成后加入地图（如果当前开关为开）
+      if (window.toggleState.forecast && !window.weatherMap.hasLayer(window.weatherLayer)) {
+        window.weatherMap.addLayer(window.weatherLayer);
+      }
       
       for (const city of CITIES) {
         // 使用缓存的数据
@@ -2804,9 +2810,13 @@ const INFO_VALUE_SIZE = '13px';
     // 渲染预警标记
     async function renderWarningMarkers() {
       if (!window.warningLayer) {
-        window.warningLayer = L.layerGroup().addTo(window.weatherMap);
+        window.warningLayer = L.layerGroup();
       }
       window.warningLayer.clearLayers();
+      // 只有预警开关开启时才加入地图
+      if (window.toggleState.warning && window.weatherMap && !window.weatherMap.hasLayer(window.warningLayer)) {
+        window.weatherMap.addLayer(window.warningLayer);
+      }
       
       for (const city of CITIES) {
         let warning = window.cachedWarningData[city.name];
@@ -3115,26 +3125,27 @@ const INFO_VALUE_SIZE = '13px';
           this.classList.toggle('active');
           this.classList.toggle(`active-${toggle}`);
           
-          // 根据切换状态显示/隐藏图层
           if (toggle === 'forecast') {
             if (window.toggleState.forecast) {
-              if (window.weatherLayer) window.weatherMap.addLayer(window.weatherLayer);
-              // 如果预警也开启，添加预警图层
-              if (window.toggleState.warning && window.warningLayer) {
-                window.weatherMap.addLayer(window.warningLayer);
+              // 首次开启天气预报时，才懒加载数据（避免进入天气地图时一次性拉取所有城市）
+              if (!window.weatherDataLoaded) {
+                window.weatherDataLoaded = true;
+                this.textContent = '🌤️ 天气预报加载中...';
+                await renderWeatherMarkers();
+                this.textContent = '🌤️ 天气预报';
+              } else if (window.weatherLayer) {
+                window.weatherMap.addLayer(window.weatherLayer);
               }
             } else {
               if (window.weatherLayer) window.weatherMap.removeLayer(window.weatherLayer);
-              // 如果预警单独开启，只显示预警
-              if (window.toggleState.warning && window.warningLayer) {
-                window.weatherMap.addLayer(window.warningLayer);
-              } else if (window.warningLayer) {
-                window.weatherMap.removeLayer(window.warningLayer);
-              }
             }
           } else if (toggle === 'warning') {
             if (window.toggleState.warning) {
-              if (window.warningLayer) window.weatherMap.addLayer(window.warningLayer);
+              if (window.warningLayer) {
+                window.weatherMap.addLayer(window.warningLayer);
+              } else {
+                renderWarningMarkers();
+              }
             } else {
               if (window.warningLayer) window.weatherMap.removeLayer(window.warningLayer);
             }
@@ -3436,22 +3447,16 @@ const INFO_VALUE_SIZE = '13px';
       }).addTo(window.weatherMap);
 
       // 创建图层组
-      window.weatherLayer = L.layerGroup().addTo(window.weatherMap);
+      // 默认只显示预警，天气预报和台风路径按需加载
       window.warningLayer = L.layerGroup().addTo(window.weatherMap);
+      window.weatherLayer = null;
       window.typhoonLayer = L.layerGroup();
       window.typhoonDataLoaded = false;
+      window.weatherDataLoaded = false;
 
-      // 并行加载天气和预警数据
-      await Promise.all([
-        renderWeatherMarkers(),
-        renderWarningMarkers()
-      ]);
-
-      // 如果台风按钮默认开启，加载台风数据
-      if (window.toggleState.typhoon) {
-        window.typhoonDataLoaded = true;
-        renderTyphoonTracks();
-      }
+      // 进入天气地图默认只加载预警数据（快）
+      // 城市天气实况、台风路径由用户点击按钮后按需加载
+      renderWarningMarkers();
 
       // 设置切换按钮
       setupToggleButtons();
