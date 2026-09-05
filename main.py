@@ -98,7 +98,7 @@ def run_animation_task(task_id, dat_files, output_path, animation_script):
             proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
                 text=True,
                 cwd=str(PROJECT_ROOT),
                 bufsize=1,
@@ -160,9 +160,9 @@ def run_animation_task(task_id, dat_files, output_path, animation_script):
                 continue
 
         proc.wait(timeout=1800)
-        stderr_output = proc.stderr.read() if proc.stderr else ''
-        if stderr_output.strip():
-            task['log'].append(f'[STDERR] {stderr_output.strip()}')
+        #stderr_output = proc.stderr.read() if proc.stderr else ''
+        #if stderr_output.strip():
+            #task['log'].append(f'[STDERR] {stderr_output.strip()}')
 
         # --- 第五阶段：输出验证 ---
         # P5-29: 子进程退出码
