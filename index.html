@@ -380,8 +380,9 @@
     .detail-image {
       width: 100%;
       max-height: 500px;
-      object-fit: cover;
+      object-fit: contain;
       border-radius: 10px;
+      background: rgba(0, 0, 0, 0.3);
     }
 
     .info-section {
@@ -1223,211 +1224,6 @@
     .alert-info .alert-text {
       color: #856404;
     }
-
-    /* ========== 台风动画生成页面 ========== */
-    .typhoon-animation-page {
-      display: none;
-      min-height: 100vh;
-      padding-top: 100px;
-      padding-bottom: 60px;
-      background: linear-gradient(135deg, #0a1628 0%, #1a2a4a 100%);
-    }
-    .typhoon-animation-page.active {
-      display: block;
-    }
-    .ta-container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    .ta-header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    .ta-title {
-      font-size: 36px;
-      color: #fff;
-      margin-bottom: 10px;
-      font-family: "SimSun", "宋体", serif;
-      text-shadow: 0 0 20px rgba(100,180,255,0.3);
-    }
-    .ta-subtitle {
-      font-size: 16px;
-      color: rgba(255,255,255,0.7);
-      font-family: "SimSun", "宋体", serif;
-    }
-    .ta-content {
-      background: rgba(255,255,255,0.05);
-      border-radius: 16px;
-      padding: 30px;
-      border: 1px solid rgba(255,255,255,0.1);
-      backdrop-filter: blur(10px);
-    }
-    .ta-section {
-      margin-bottom: 30px;
-    }
-    .ta-section-title {
-      font-size: 20px;
-      color: #8ab4f8;
-      margin-bottom: 20px;
-      font-family: "SimSun", "宋体", serif;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding-bottom: 10px;
-    }
-    .ta-upload-area {
-      border: 2px dashed rgba(255,255,255,0.3);
-      border-radius: 12px;
-      padding: 40px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.3s;
-      background: rgba(255,255,255,0.02);
-    }
-    .ta-upload-area:hover {
-      border-color: rgba(138,180,248,0.6);
-      background: rgba(138,180,248,0.05);
-    }
-    .ta-upload-area.dragover {
-      border-color: #8ab4f8;
-      background: rgba(138,180,248,0.1);
-    }
-    .ta-upload-icon {
-      font-size: 48px;
-      margin-bottom: 15px;
-    }
-    .ta-upload-text {
-      font-size: 18px;
-      color: #fff;
-      margin-bottom: 8px;
-      font-family: "SimSun", "宋体", serif;
-    }
-    .ta-upload-hint {
-      font-size: 14px;
-      color: rgba(255,255,255,0.5);
-      font-family: "SimSun", "宋体", serif;
-    }
-    .ta-file-info {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 15px 20px;
-      background: rgba(138,180,248,0.1);
-      border-radius: 8px;
-      margin-top: 15px;
-    }
-    .ta-file-name {
-      color: #8ab4f8;
-      font-size: 16px;
-      font-family: "SimSun", "宋体", serif;
-    }
-    .ta-btn {
-      padding: 12px 24px;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s;
-      font-family: "SimSun", "宋体", serif;
-      text-decoration: none;
-      display: inline-block;
-    }
-    .ta-btn-primary {
-      background: linear-gradient(135deg, #1a73e8, #4285f4);
-      color: #fff;
-    }
-    .ta-btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 15px rgba(66,133,244,0.4);
-    }
-    .ta-btn-primary:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .ta-btn-secondary {
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-    .ta-btn-secondary:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    .ta-features {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 15px;
-    }
-    .ta-feature {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 15px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 8px;
-      border: 1px solid rgba(255,255,255,0.05);
-    }
-    .ta-feature-icon {
-      font-size: 24px;
-      flex-shrink: 0;
-    }
-    .ta-feature-text {
-      font-size: 14px;
-      color: rgba(255,255,255,0.8);
-      font-family: "SimSun", "宋体", serif;
-      line-height: 1.5;
-    }
-    .ta-progress-bar {
-      width: 100%;
-      height: 20px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 10px;
-      overflow: hidden;
-      margin-bottom: 15px;
-    }
-    .ta-progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #1a73e8, #4285f4);
-      border-radius: 10px;
-      transition: width 0.3s;
-      width: 0%;
-    }
-    .ta-progress-text {
-      font-size: 14px;
-      color: rgba(255,255,255,0.7);
-      font-family: "SimSun", "宋体", serif;
-    }
-    .ta-result-info {
-      text-align: center;
-      padding: 20px;
-    }
-    .ta-result-message {
-      font-size: 16px;
-      color: #4caf50;
-      margin-bottom: 20px;
-      font-family: "SimSun", "宋体", serif;
-    }
-    .ta-error-message {
-      font-size: 14px;
-      color: #f44336;
-      padding: 15px;
-      background: rgba(244,67,54,0.1);
-      border-radius: 8px;
-      border: 1px solid rgba(244,67,54,0.3);
-      font-family: "SimSun", "宋体", serif;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-    @media (max-width: 768px) {
-      .ta-features {
-        grid-template-columns: 1fr;
-      }
-      .ta-title {
-        font-size: 24px;
-      }
-      .ta-content {
-        padding: 20px;
-      }
-    }
   </style>
 </head>
 <body>
@@ -1446,9 +1242,6 @@ const AVATAR_IMAGE_URL = '广东气象爱好者logo.png';
 
 // 【第二个头像链接】用于追风记录和详情页面，留空则显示默认"追风者"文字
 const AVATAR_SECONDARY_URL = 'SKVX兆logo.png';
-
-// 【第三个头像链接】用于工具页面（台风动画生成），留空则显示默认"开发者 3 号"文字
-const AVATAR_TERTIARY_URL = '';
 
 // ==================== 追风栏目数据配置 ====================
 /* 
@@ -1776,11 +1569,6 @@ const INFO_VALUE_SIZE = '13px';
       <img id="avatar-img-secondary" class="avatar" style="display: none;">
       <div id="avatar-placeholder-secondary" class="avatar">追风者</div>
     </div>
-    <!-- 第三个头像 - 仅在工具页面显示 -->
-    <div class="avatar-container-secondary" id="avatar-tertiary">
-      <img id="avatar-img-tertiary" class="avatar" style="display: none;">
-      <div id="avatar-placeholder-tertiary" class="avatar">开发者 3 号</div>
-    </div>
     <nav class="nav">
       <div class="nav-item active" data-page="home">主页</div>
       <div class="nav-item" data-page="chase">追风记录</div>
@@ -1815,12 +1603,6 @@ const INFO_VALUE_SIZE = '13px';
         <div class="dropdown" id="weather-map-dropdown">
           <div class="dropdown-item" data-page="weather">天气地图</div>
           <div class="dropdown-item" data-page="online-weather">线上天气地图</div>
-        </div>
-      </div>
-      <div class="nav-item has-dropdown" data-dropdown="tools">
-        工具
-        <div class="dropdown" id="tools-dropdown">
-          <div class="dropdown-item" data-page="typhoon-animation">台风动画生成</div>
         </div>
       </div>
     </nav>
@@ -1942,7 +1724,7 @@ const INFO_VALUE_SIZE = '13px';
       <button class="user-forecast-btn" id="addTyphoonBtn" style="display:none;margin-left:6px;font-size:11px;padding:4px 10px;" title="手动添加台风"> 添加台风</button>
     </div>
     <div class="map-toggle-panel">
-      <button class="map-toggle-btn" data-toggle="forecast">🌤️ 天气预报</button>
+      <button class="map-toggle-btn active active-forecast" data-toggle="forecast">🌤️ 天气预报</button>
       <button class="map-toggle-btn active active-warning" data-toggle="warning">⚠️ 预警</button>
       <button class="map-toggle-btn" data-toggle="typhoon">🌀 台风路径</button>
     </div>
@@ -1951,7 +1733,7 @@ const INFO_VALUE_SIZE = '13px';
   <!-- 线上天气地图页面 -->
   <div class="online-weather-page" id="online-weather-page">
     <div class="online-weather-container">
-      <div class="online-weather-header">🌍 在线卫星云图</div>
+      <div class="online-weather-header">🌍 线上气象地图</div>
       <div class="ow-satellite-card" style="background-image:url('卫星云图界面背景.jpg')">
         <a class="ow-satellite-link" href="https://zoom.earth/" target="_blank" rel="noopener">
           交互式静轨卫星云图拼图
@@ -1965,101 +1747,11 @@ const INFO_VALUE_SIZE = '13px';
         <iframe src="https://www.ventusky.com/" class="ow-iframe" allowfullscreen loading="lazy"></iframe>
       </div>
       <div class="ow-item">
-        <div class="ow-label">Windy · 全能天气图</div>
-        <iframe src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=23.5&lon=113.5&detailLat=23.13&detailLon=113.26&marker=true&message=true" class="ow-iframe" allowfullscreen loading="lazy"></iframe>
+        <div class="ow-label">Windy · 风场与天气图</div>
+        <iframe src="https://www.windy.com/" class="ow-iframe" allowfullscreen loading="lazy"></iframe>
+        <div class="ow-vpn-tip">⚠️ 需使用魔法查看</div>
       </div>
       
-    </div>
-  </div>
-
-  <!-- 台风动画生成页面 -->
-  <div class="typhoon-animation-page" id="typhoon-animation-page">
-    <div class="ta-container">
-      <div class="ta-header">
-        <h1 class="ta-title">🌀 台风路径动画自动生成</h1>
-        <p class="ta-subtitle">上传 ATCF b-deck 文件，自动生成台风路径动画视频</p>
-      </div>
-      
-      <div class="ta-content">
-        <!-- 上传区域 -->
-        <div class="ta-section">
-          <h2 class="ta-section-title"> 上传数据文件</h2>
-          <div class="ta-upload-area" id="ta-upload-area">
-            <div class="ta-upload-icon">📤</div>
-            <div class="ta-upload-text">点击或拖拽上传 ATCF b-deck 文件 (.dat)</div>
-            <div class="ta-upload-hint">支持 JTWC 最佳路径数据格式</div>
-            <input type="file" id="ta-file-input" accept=".dat" style="display: none;">
-          </div>
-          <div class="ta-file-info" id="ta-file-info" style="display: none;">
-            <div class="ta-file-name" id="ta-file-name"></div>
-            <button class="ta-btn ta-btn-secondary" id="ta-clear-file">清除</button>
-          </div>
-        </div>
-
-        <!-- 功能说明 -->
-        <div class="ta-section">
-          <h2 class="ta-section-title">✨ 自动处理功能</h2>
-          <div class="ta-features">
-            <div class="ta-feature">
-              <div class="ta-feature-icon">📍</div>
-              <div class="ta-feature-text">根据报文自动确定TC位置、强度、性质、名称</div>
-            </div>
-            <div class="ta-feature">
-              <div class="ta-feature-icon">🎨</div>
-              <div class="ta-feature-text">根据报文自动生成移动TC图标，切换动画自然，自动处理多气旋活动</div>
-            </div>
-            <div class="ta-feature">
-              <div class="ta-feature-icon">⏰</div>
-              <div class="ta-feature-text">画面包含时间轴并自动根据台风活跃状况调整速度，路径自动绘制</div>
-            </div>
-            <div class="ta-feature">
-              <div class="ta-feature-icon">⏩</div>
-              <div class="ta-feature-text">系统地图会按照时间比例给西太（70%），东太（10%），北大（15%），地中海等（5%）等地区地图上线；请按需选择对应地图在线时间制作</div>
-            </div>
-            <div class="ta-feature">
-              <div class="ta-feature-icon">️🗺</div>
-              <div class="ta-feature-text">根据等距圆柱投影地图建立经纬坐标系，并根据活跃区域平移和缩放</div>
-            </div>
-            <div class="ta-feature">
-              <div class="ta-feature-icon">🎵</div>
-              <div class="ta-feature-text">内置图标和登陆素材，自动色度抠图，自动进行登陆检测与特效、ACE 统计条（自动计算）</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 生成按钮 -->
-        <div class="ta-section">
-          <button class="ta-btn ta-btn-primary" id="ta-generate-btn" disabled>
-            🚀 生成台风动画
-          </button>
-        </div>
-
-        <!-- 进度显示 -->
-        <div class="ta-section" id="ta-progress-section" style="display: none;">
-          <h2 class="ta-section-title">⏳ 生成进度</h2>
-          <div class="ta-progress-bar">
-            <div class="ta-progress-fill" id="ta-progress-fill"></div>
-          </div>
-          <div class="ta-progress-text" id="ta-progress-text">准备中...</div>
-        </div>
-
-        <!-- 结果展示 -->
-        <div class="ta-section" id="ta-result-section" style="display: none;">
-          <h2 class="ta-section-title">✅ 生成完成</h2>
-          <div class="ta-result-info">
-            <div class="ta-result-message" id="ta-result-message"></div>
-            <a class="ta-btn ta-btn-primary" id="ta-download-btn" href="#" download>
-              ⬇️ 下载动画视频
-            </a>
-          </div>
-        </div>
-
-        <!-- 错误提示 -->
-        <div class="ta-section" id="ta-error-section" style="display: none;">
-          <h2 class="ta-section-title">❌ 生成失败</h2>
-          <div class="ta-error-message" id="ta-error-message"></div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -2182,7 +1874,6 @@ const INFO_VALUE_SIZE = '13px';
     const detailPage = document.getElementById('detail-page');
     const weatherMapPage = document.getElementById('weather-map-page');
     const onlineWeatherPage = document.getElementById('online-weather-page');
-    const typhoonAnimationPage = document.getElementById('typhoon-animation-page');
 
     navItems.forEach(item => {
       if (!item.classList.contains('has-dropdown')) {
@@ -2201,24 +1892,20 @@ const INFO_VALUE_SIZE = '13px';
           detailPage.classList.remove('active');
           weatherMapPage.classList.remove('active');
           onlineWeatherPage.classList.remove('active');
-          typhoonAnimationPage.classList.remove('active');
           
           if (page === 'home') {
             homePage.classList.add('active');
             homePage.classList.remove('hidden');
-            // 主页隐藏第二个和第三个头像
+            // 主页隐藏第二个头像
             updateSecondaryAvatarVisibility(false);
-            updateTertiaryAvatarVisibility(false);
           } else if (page === 'chase') {
             chasePage.classList.add('active');
             // 追风记录页面显示第二个头像
             updateSecondaryAvatarVisibility(true);
-            updateTertiaryAvatarVisibility(false);
           } else if (page === 'weather') {
             weatherMapPage.classList.add('active');
             // 天气地图页面显示第二个头像
             updateSecondaryAvatarVisibility(true);
-            updateTertiaryAvatarVisibility(false);
             // 延迟初始化地图（确保页面可见后再渲染）
             if (!window.weatherMapInitialized) {
               setTimeout(initWeatherMap, 100);
@@ -2228,11 +1915,6 @@ const INFO_VALUE_SIZE = '13px';
           } else if (page === 'online-weather') {
             onlineWeatherPage.classList.add('active');
             updateSecondaryAvatarVisibility(true);
-            updateTertiaryAvatarVisibility(false);
-          } else if (page === 'typhoon-animation') {
-            typhoonAnimationPage.classList.add('active');
-            updateSecondaryAvatarVisibility(false);
-            updateTertiaryAvatarVisibility(true);
           }
         });
       }
@@ -2277,12 +1959,10 @@ const INFO_VALUE_SIZE = '13px';
         detailPage.classList.remove('active');
         weatherMapPage.classList.remove('active');
         onlineWeatherPage.classList.remove('active');
-        typhoonAnimationPage.classList.remove('active');
         
         if (page === 'weather') {
           weatherMapPage.classList.add('active');
           updateSecondaryAvatarVisibility(true);
-          updateTertiaryAvatarVisibility(false);
           if (!window.weatherMapInitialized) {
             setTimeout(initWeatherMap, 100);
           } else {
@@ -2291,37 +1971,6 @@ const INFO_VALUE_SIZE = '13px';
         } else if (page === 'online-weather') {
           onlineWeatherPage.classList.add('active');
           updateSecondaryAvatarVisibility(true);
-          updateTertiaryAvatarVisibility(false);
-        } else if (page === 'typhoon-animation') {
-          typhoonAnimationPage.classList.add('active');
-          updateSecondaryAvatarVisibility(false);
-          updateTertiaryAvatarVisibility(true);
-        }
-      });
-    });
-
-    // ========== 工具下拉菜单选项点击 ==========
-    document.querySelectorAll('#tools-dropdown .dropdown-item').forEach(item => {
-      item.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const page = this.dataset.page;
-        
-        // 关闭所有下拉菜单
-        document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
-        
-        // 隐藏所有页面
-        homePage.classList.remove('active');
-        homePage.classList.add('hidden');
-        chasePage.classList.remove('active');
-        detailPage.classList.remove('active');
-        weatherMapPage.classList.remove('active');
-        onlineWeatherPage.classList.remove('active');
-        typhoonAnimationPage.classList.remove('active');
-        
-        if (page === 'typhoon-animation') {
-          typhoonAnimationPage.classList.add('active');
-          updateSecondaryAvatarVisibility(false);
-          updateTertiaryAvatarVisibility(true);
         }
       });
     });
@@ -2710,8 +2359,7 @@ const INFO_VALUE_SIZE = '13px';
     }
 
     // ==================== 地图切换状态管理 ====================
-    window.toggleState = { forecast: false, warning: true, typhoon: false };
-    window.weatherDataLoaded = false;
+    window.toggleState = { forecast: true, warning: true, typhoon: false };
     window.showForecastPath = true;        // 预测路径显示开关
     window.userForecastMode = false;        // 我要预报模式
     window.userForecastData = [];           // 用户预报数据 [{lat,lon,level,windSpeed,color,period}]
@@ -2731,14 +2379,9 @@ const INFO_VALUE_SIZE = '13px';
     // 渲染天气标记
     async function renderWeatherMarkers() {
       if (!window.weatherLayer) {
-        // 按需创建（默认不加入地图，直到用户开启天气预报）
-        window.weatherLayer = L.layerGroup();
+        window.weatherLayer = L.layerGroup().addTo(window.weatherMap);
       }
       window.weatherLayer.clearLayers();
-      // 确保加载完成后加入地图（如果当前开关为开）
-      if (window.toggleState.forecast && !window.weatherMap.hasLayer(window.weatherLayer)) {
-        window.weatherMap.addLayer(window.weatherLayer);
-      }
       
       for (const city of CITIES) {
         // 使用缓存的数据
@@ -2808,13 +2451,9 @@ const INFO_VALUE_SIZE = '13px';
     // 渲染预警标记
     async function renderWarningMarkers() {
       if (!window.warningLayer) {
-        window.warningLayer = L.layerGroup();
+        window.warningLayer = L.layerGroup().addTo(window.weatherMap);
       }
       window.warningLayer.clearLayers();
-      // 只有预警开关开启时才加入地图
-      if (window.toggleState.warning && window.weatherMap && !window.weatherMap.hasLayer(window.warningLayer)) {
-        window.weatherMap.addLayer(window.warningLayer);
-      }
       
       for (const city of CITIES) {
         let warning = window.cachedWarningData[city.name];
@@ -3123,27 +2762,26 @@ const INFO_VALUE_SIZE = '13px';
           this.classList.toggle('active');
           this.classList.toggle(`active-${toggle}`);
           
+          // 根据切换状态显示/隐藏图层
           if (toggle === 'forecast') {
             if (window.toggleState.forecast) {
-              // 首次开启天气预报时，才懒加载数据（避免进入天气地图时一次性拉取所有城市）
-              if (!window.weatherDataLoaded) {
-                window.weatherDataLoaded = true;
-                this.textContent = '🌤️ 天气预报加载中...';
-                await renderWeatherMarkers();
-                this.textContent = '🌤️ 天气预报';
-              } else if (window.weatherLayer) {
-                window.weatherMap.addLayer(window.weatherLayer);
+              if (window.weatherLayer) window.weatherMap.addLayer(window.weatherLayer);
+              // 如果预警也开启，添加预警图层
+              if (window.toggleState.warning && window.warningLayer) {
+                window.weatherMap.addLayer(window.warningLayer);
               }
             } else {
               if (window.weatherLayer) window.weatherMap.removeLayer(window.weatherLayer);
+              // 如果预警单独开启，只显示预警
+              if (window.toggleState.warning && window.warningLayer) {
+                window.weatherMap.addLayer(window.warningLayer);
+              } else if (window.warningLayer) {
+                window.weatherMap.removeLayer(window.warningLayer);
+              }
             }
           } else if (toggle === 'warning') {
             if (window.toggleState.warning) {
-              if (window.warningLayer) {
-                window.weatherMap.addLayer(window.warningLayer);
-              } else {
-                renderWarningMarkers();
-              }
+              if (window.warningLayer) window.weatherMap.addLayer(window.warningLayer);
             } else {
               if (window.warningLayer) window.weatherMap.removeLayer(window.warningLayer);
             }
@@ -3445,16 +3083,22 @@ const INFO_VALUE_SIZE = '13px';
       }).addTo(window.weatherMap);
 
       // 创建图层组
-      // 默认只显示预警，天气预报和台风路径按需加载
+      window.weatherLayer = L.layerGroup().addTo(window.weatherMap);
       window.warningLayer = L.layerGroup().addTo(window.weatherMap);
-      window.weatherLayer = null;
       window.typhoonLayer = L.layerGroup();
       window.typhoonDataLoaded = false;
-      window.weatherDataLoaded = false;
 
-      // 进入天气地图默认只加载预警数据（快）
-      // 城市天气实况、台风路径由用户点击按钮后按需加载
-      renderWarningMarkers();
+      // 并行加载天气和预警数据
+      await Promise.all([
+        renderWeatherMarkers(),
+        renderWarningMarkers()
+      ]);
+
+      // 如果台风按钮默认开启，加载台风数据
+      if (window.toggleState.typhoon) {
+        window.typhoonDataLoaded = true;
+        renderTyphoonTracks();
+      }
 
       // 设置切换按钮
       setupToggleButtons();
@@ -3723,177 +3367,6 @@ const INFO_VALUE_SIZE = '13px';
     }
 
     
-
-    // ========== 初始化第三个头像 ==========
-    const avatarImgTertiary = document.getElementById('avatar-img-tertiary');
-    const avatarPlaceholderTertiary = document.getElementById('avatar-placeholder-tertiary');
-    
-    if (AVATAR_TERTIARY_URL && AVATAR_TERTIARY_URL.trim() !== '') {
-      avatarImgTertiary.src = AVATAR_TERTIARY_URL;
-      avatarImgTertiary.style.display = 'block';
-      avatarPlaceholderTertiary.style.display = 'none';
-    }
-
-    // ========== 控制第三个头像显示/隐藏 ==========
-    function updateTertiaryAvatarVisibility(show) {
-      const avatarTertiary = document.getElementById('avatar-tertiary');
-      if (show) {
-        avatarTertiary.classList.add('show');
-      } else {
-        avatarTertiary.classList.remove('show');
-      }
-    }
-
-    // ========== 台风动画生成页面功能 ==========
-    const API_BASE_URL = 'https://gdme-production.up.railway.app'; // API 服务器地址（ngrok 永久域名）
-    
-    let currentTaskId = null;
-    let uploadedFile = null;
-    
-    // 上传区域交互
-    const uploadArea = document.getElementById('ta-upload-area');
-    const fileInput = document.getElementById('ta-file-input');
-    const fileInfo = document.getElementById('ta-file-info');
-    const fileName = document.getElementById('ta-file-name');
-    const clearFileBtn = document.getElementById('ta-clear-file');
-    const generateBtn = document.getElementById('ta-generate-btn');
-    
-    uploadArea.addEventListener('click', () => fileInput.click());
-    
-    uploadArea.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadArea.classList.add('dragover');
-    });
-    
-    uploadArea.addEventListener('dragleave', () => {
-      uploadArea.classList.remove('dragover');
-    });
-    
-    uploadArea.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove('dragover');
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        handleFileUpload(files[0]);
-      }
-    });
-    
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        handleFileUpload(e.target.files[0]);
-      }
-    });
-    
-    clearFileBtn.addEventListener('click', () => {
-      uploadedFile = null;
-      fileInput.value = '';
-      fileInfo.style.display = 'none';
-      uploadArea.style.display = 'block';
-      generateBtn.disabled = true;
-    });
-    
-    async function handleFileUpload(file) {
-      if (!file.name.endsWith('.dat')) {
-        alert('请上传 .dat 格式的 ATCF 文件');
-        return;
-      }
-      
-      uploadedFile = file;
-      fileName.textContent = file.name;
-      fileInfo.style.display = 'flex';
-      uploadArea.style.display = 'none';
-      
-      // 上传文件到服务器
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        
-        const response = await fetch(`${API_BASE_URL}/api/upload`, {
-          method: 'POST',
-          body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-          currentTaskId = data.task_id;
-          generateBtn.disabled = false;
-        } else {
-          alert('上传失败：' + data.error);
-          uploadedFile = null;
-          fileInfo.style.display = 'none';
-          uploadArea.style.display = 'block';
-        }
-      } catch (error) {
-        alert('上传失败：' + error.message);
-        console.error('上传错误:', error);
-      }
-    }
-    
-    // 生成按钮
-    generateBtn.addEventListener('click', async () => {
-      if (!currentTaskId) {
-        alert('请先上传文件');
-        return;
-      }
-      
-      generateBtn.disabled = true;
-      document.getElementById('ta-progress-section').style.display = 'block';
-      document.getElementById('ta-result-section').style.display = 'none';
-      document.getElementById('ta-error-section').style.display = 'none';
-      
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/generate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ task_id: currentTaskId })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.status === 'completed') {
-          document.getElementById('ta-progress-fill').style.width = '100%';
-          document.getElementById('ta-progress-text').textContent = '生成完成！';
-          document.getElementById('ta-result-section').style.display = 'block';
-          document.getElementById('ta-result-message').textContent = '台风动画已成功生成！';
-          document.getElementById('ta-download-btn').href = `${API_BASE_URL}/api/download/${currentTaskId}`;
-        } else {
-          document.getElementById('ta-error-section').style.display = 'block';
-          document.getElementById('ta-error-message').textContent = data.error || '生成失败';
-        }
-      } catch (error) {
-        document.getElementById('ta-error-section').style.display = 'block';
-        document.getElementById('ta-error-message').textContent = '请求失败：' + error.message;
-      } finally {
-        generateBtn.disabled = false;
-      }
-    });
-    
-    // 轮询任务状态（用于长时间任务）
-    async function pollTaskStatus(taskId) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/status/${taskId}`);
-        const data = await response.json();
-        
-        if (data.status === 'processing') {
-          document.getElementById('ta-progress-text').textContent = data.message || '处理中...';
-          setTimeout(() => pollTaskStatus(taskId), 2000);
-        } else if (data.status === 'completed') {
-          document.getElementById('ta-progress-fill').style.width = '100%';
-          document.getElementById('ta-progress-text').textContent = '生成完成！';
-          document.getElementById('ta-result-section').style.display = 'block';
-          document.getElementById('ta-result-message').textContent = '台风动画已成功生成！';
-          document.getElementById('ta-download-btn').href = `${API_BASE_URL}/api/download/${taskId}`;
-          generateBtn.disabled = false;
-        } else if (data.status === 'error') {
-          document.getElementById('ta-error-section').style.display = 'block';
-          document.getElementById('ta-error-message').textContent = data.message || '生成失败';
-          generateBtn.disabled = false;
-        }
-      } catch (error) {
-        console.error('状态查询失败:', error);
-      }
-    }
 
     // ========== 初始化 ==========
     renderChaseGrid();
