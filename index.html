@@ -494,19 +494,26 @@
       z-index: 1;
     }
 
-    /* 消除 PC 端地图瓦片之间的白色间隙线 */
+    /* 彻底消除 PC 端地图瓦片之间的白色间隙线 */
     #weather-map .leaflet-tile {
       border: none !important;
       padding: 0 !important;
       margin: 0 !important;
+      /* 让瓦片各方向扩大 1px 并偏移 -1px，形成 1px 重叠覆盖亚像素缝隙 */
+      width: calc(100% + 2px) !important;
+      height: calc(100% + 2px) !important;
+      margin-left: -1px !important;
+      margin-top: -1px !important;
+      transform: translateZ(0);
     }
 
     #weather-map .leaflet-tile-container img {
       image-rendering: auto;
     }
 
-    #weather-map .leaflet-tile {
-      transform: translateZ(0);
+    /* 瓦片容器背景设为海洋色，残余极小缝隙自动融入 */
+    #weather-map .leaflet-tile-container {
+      background: #aad3df;
     }
 
     /* 天气标签 - 横杠样式，直接显示在地图上 */
