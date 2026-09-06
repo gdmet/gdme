@@ -2398,6 +2398,9 @@ const INFO_VALUE_SIZE = '13px';
       { name: '三明', lat: 26.2672, lon: 117.6340 },
     ];
 
+    // ==================== 风速风向使用 OpenWeather API ====================
+    const OPENWEATHER_API_KEY = 'dc7353b67b6c40590ae08ca972bac622';
+
     // ==================== 和风天气 配置 ====================
     const QWEATHER_API_HOST = 'mp7p44w5mv.re.qweatherapi.com';
     const QWEATHER_API_KEY = '3a15479e1fd54c3cb6172d235dcb0d27';
@@ -2655,17 +2658,71 @@ const INFO_VALUE_SIZE = '13px';
       }
     }
 
-    // 获取天气数据（和风天气）
+    // 获取风速风向（OpenWeather API）
+    async function fetchOWWindData(lat, lon) {
+      try {
+        const [curRes, fcRes] = await Promise.all([
+          fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`),
+          fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`)
+        ]);
+        const cur = await curRes.json();
+        const fc = await fcRes.json();
+
+        const currentWind = {
+          wind_speed_10m: cur.wind.speed,
+          wind_direction_10m: cur.wind.deg
+        };
+
+        // 将OW 3小时预报按日期聚合，取每日最大风速和平均风向
+        const dailyMap = {};
+        for (const item of fc.list) {
+          const date = item.dt_txt.split(' ')[0];
+          if (!dailyMap[date]) dailyMap[date] = { speeds: [], dirs: [] };
+          dailyMap[date].speeds.push(item.wind.speed);
+          dailyMap[date].dirs.push(item.wind.deg);
+        }
+
+        const dailyWind = {};
+        for (const [date, d] of Object.entries(dailyMap)) {
+          dailyWind[date] = {
+            maxSpeed: Math.max(...d.speeds),
+            avgDir: Math.round(d.dirs.reduce((a, b) => a + b, 0) / d.dirs.length)
+          };
+        }
+
+        return { currentWind, dailyWind };
+      } catch (e) {
+        console.error('获取OpenWeather风速风向失败:', e);
+        return null;
+      }
+    }
+
+    // 获取天气数据（和风天气 + OpenWeather风速风向）
     async function fetchWeatherData(city) {
       try {
-        const [current, forecast] = await Promise.all([
+        const [current, forecast, owWind] = await Promise.all([
           fetchQWeatherCurrent(city.lat, city.lon),
-          fetchQWeatherDaily(city.lat, city.lon)
+          fetchQWeatherDaily(city.lat, city.lon),
+          fetchOWWindData(city.lat, city.lon)
         ]);
 
         if (!current || !forecast) {
           console.error('获取天气数据失败:', city.name, 'current:', !!current, 'daily:', !!forecast);
           return null;
+        }
+
+        // 用 OpenWeather 的风速风向覆盖和风天气的数据
+        if (owWind) {
+          current.wind_speed_10m = owWind.currentWind.wind_speed_10m;
+          current.wind_direction_10m = owWind.currentWind.wind_direction_10m;
+
+          for (let i = 0; i < forecast.daily.time.length; i++) {
+            const date = forecast.daily.time[i];
+            if (owWind.dailyWind[date]) {
+              forecast.daily.wind_speed_10m_max[i] = owWind.dailyWind[date].maxSpeed;
+              forecast.daily.wind_direction_10m_dominant[i] = owWind.dailyWind[date].avgDir;
+            }
+          }
         }
 
         return { current, daily: forecast.daily, hourly: forecast.hourly };
