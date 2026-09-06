@@ -2398,9 +2398,6 @@ const INFO_VALUE_SIZE = '13px';
       { name: '三明', lat: 26.2672, lon: 117.6340 },
     ];
 
-    // ==================== OpenWeatherMap 配置 ====================
-    const OPENWEATHER_API_KEY = 'dc7353b67b6c40590ae08ca972bac622';
-
     // ==================== 和风天气 配置 ====================
     const QWEATHER_API_HOST = 'mp7p44w5mv.re.qweatherapi.com';
     const QWEATHER_API_KEY = '3a15479e1fd54c3cb6172d235dcb0d27';
@@ -2518,29 +2515,21 @@ const INFO_VALUE_SIZE = '13px';
 
     // OWM天气代码转描述
     function getWeatherDesc(code) {
-      if (code >= 200 && code < 300) return '雷暴';
-      if (code >= 300 && code < 400) return '毛毛雨';
-      if (code >= 500 && code < 510) return '小雨';
-      if (code >= 510 && code < 520) return '中雨';
-      if (code >= 520 && code < 600) return '大雨';
-      if (code >= 600 && code < 610) return '小雪';
-      if (code >= 610 && code < 620) return '中雪';
-      if (code >= 620 && code < 700) return '大雪';
-      if (code === 701) return '薄雾';
-      if (code === 711) return '烟霾';
-      if (code === 721) return '霾';
-      if (code === 731 || code === 751) return '沙尘';
-      if (code === 741) return '雾';
-      if (code === 761) return '浮尘';
-      if (code === 762) return '火山灰';
-      if (code === 771) return '飑';
-      if (code === 781) return '龙卷风';
-      if (code === 800) return '晴';
-      if (code === 801) return '少云';
-      if (code === 802) return '多云';
-      if (code === 803) return '阴';
-      if (code === 804) return '阴';
-      return '未知';
+      const descMap = {
+        100: '晴', 101: '多云', 102: '少云', 103: '晴间多云', 104: '阴',
+        300: '阵雨', 301: '强阵雨', 302: '雷阵雨', 303: '强雷阵雨', 304: '雷阵雨伴有冰雹',
+        305: '小雨', 306: '中雨', 307: '大雨', 308: '极端降雨', 309: '毛毛雨',
+        310: '暴雨', 311: '大暴雨', 312: '特大暴雨', 313: '冻雨',
+        314: '小到中雨', 315: '中到大雨', 316: '大到暴雨', 317: '暴雨到大暴雨', 318: '大暴雨到特大暴雨',
+        399: '雨',
+        400: '小雪', 401: '中雪', 402: '大雪', 403: '暴雪', 404: '雨夹雪',
+        405: '雨雪天气', 406: '阵雨夹雪', 407: '阵雪', 408: '小到中雪', 409: '中到大雪', 410: '大到暴雪', 499: '雪',
+        500: '薄雾', 501: '雾', 502: '霾', 503: '扬沙', 504: '浮尘',
+        507: '沙尘暴', 508: '强沙尘暴', 509: '浓雾', 510: '强浓雾',
+        511: '中度霾', 512: '重度霾', 513: '严重霾', 514: '大雾', 515: '特强浓雾',
+        900: '热', 901: '冷', 999: '未知'
+      };
+      return descMap[parseInt(code)] || '未知';
     }
 
     // 台风类型中文名
@@ -2567,82 +2556,120 @@ const INFO_VALUE_SIZE = '13px';
       return '';
     }
 
-    // OWM天气代码转图标
+    // 和风天气代码转图标
     function getWeatherIcon(code) {
-      if (code >= 200 && code < 300) return '⛈️';
-      if (code >= 300 && code < 400) return '🌦️';
-      if (code >= 500 && code < 600) return '🌧️';
-      if (code >= 600 && code < 700) return '🌨️';
-      if (code >= 700 && code < 800) return '🌫️';
-      if (code === 800) return '☀️';
-      if (code === 801) return '🌤️';
-      if (code === 802) return '⛅';
-      if (code >= 803) return '☁️';
+      const c = parseInt(code);
+      if (c === 100) return '☀️';
+      if (c === 101) return '⛅';
+      if (c === 102 || c === 103) return '🌤️';
+      if (c === 104) return '☁️';
+      if (c >= 302 && c <= 304) return '⛈️';
+      if (c >= 300 && c <= 318 || c === 399) return '🌧️';
+      if (c >= 400 && c <= 410 || c === 499) return '🌨️';
+      if (c >= 500 && c <= 515) return '🌫️';
+      if (c === 900) return '🥵';
+      if (c === 901) return '🥶';
       return '🌤️';
     }
 
-    // 获取天气数据（OpenWeatherMap）
+    // 获取天气实况（和风天气 v1 API）
+    async function fetchQWeatherCurrent(lat, lon) {
+      try {
+        const url = `https://${QWEATHER_API_HOST}/weather/v1/current/${lat.toFixed(2)}/${lon.toFixed(2)}?lang=zh`;
+        const res = await fetch(url, {
+          headers: { 'Authorization': 'Bearer ' + QWEATHER_API_KEY }
+        });
+        const data = await res.json();
+        if (data && data.temperature) {
+          return {
+            temperature_2m: data.temperature.value,
+            relative_humidity_2m: data.humidity,
+            apparent_temperature: data.feelsLike.value,
+            precipitation: data.precipitation.amount.value,
+            weather_code: parseInt(data.condition.code),
+            weather_text: data.condition.text,
+            wind_speed_10m: data.wind.speed.value,
+            wind_direction_10m: data.wind.direction.degree,
+            surface_pressure: data.pressure.value,
+            visibility: data.visibility.value
+          };
+        }
+        return null;
+      } catch (e) {
+        console.error('获取和风天气实况失败:', e);
+        return null;
+      }
+    }
+
+    // 获取7日天气预报（和风天气 v1 API）
+    async function fetchQWeatherDaily(lat, lon) {
+      try {
+        const url = `https://${QWEATHER_API_HOST}/weather/v1/daily/${lat.toFixed(2)}/${lon.toFixed(2)}?days=7&lang=zh`;
+        const res = await fetch(url, {
+          headers: { 'Authorization': 'Bearer ' + QWEATHER_API_KEY }
+        });
+        const data = await res.json();
+        if (data && data.days && data.days.length > 0) {
+          const daily = {
+            time: [],
+            weather_code: [],
+            temperature_2m_max: [],
+            temperature_2m_min: [],
+            precipitation_sum: [],
+            precipitation_probability_max: [],
+            wind_speed_10m_max: [],
+            wind_direction_10m_dominant: []
+          };
+          const hourly = { relative_humidity_2m: [], surface_pressure: [], visibility: [] };
+
+          for (const day of data.days) {
+            const date = day.forecastStartTime.split('T')[0];
+            daily.time.push(date);
+            daily.temperature_2m_max.push(Math.round(day.temperatureMax.value * 10) / 10);
+            daily.temperature_2m_min.push(Math.round(day.temperatureMin.value * 10) / 10);
+            daily.weather_code.push(parseInt(day.daytime.condition.code));
+            const precip = day.daytime.precipitation.amount.value + (day.nighttime.precipitation.amount.value || 0);
+            daily.precipitation_sum.push(Math.round(precip * 100) / 100);
+            const prob = Math.max(day.daytime.precipitation.probability || 0, day.nighttime.precipitation.probability || 0);
+            daily.precipitation_probability_max.push(Math.round(prob * 100));
+            const maxWind = Math.max(day.daytime.wind.speed.value, day.nighttime.wind.speed.value);
+            daily.wind_speed_10m_max.push(Math.round(maxWind * 10) / 10);
+            daily.wind_direction_10m_dominant.push(day.daytime.wind.direction.degree);
+
+            const avgHumidity = ((day.daytime.humidity || 0) + (day.nighttime.humidity || 0)) / 2;
+            const avgPressure = Math.round(((day.daytime.pressure?.value || 1013) + (day.nighttime.pressure?.value || 1013)) / 2);
+            const avgVis = Math.round(((day.daytime.visibility?.value || 10000) + (day.nighttime.visibility?.value || 10000)) / 2);
+
+            for (let h = 0; h < 8; h++) {
+              hourly.relative_humidity_2m.push(avgHumidity);
+              hourly.surface_pressure.push(avgPressure);
+              hourly.visibility.push(avgVis);
+            }
+          }
+
+          return { daily, hourly };
+        }
+        return null;
+      } catch (e) {
+        console.error('获取和风天气预报失败:', e);
+        return null;
+      }
+    }
+
+    // 获取天气数据（和风天气）
     async function fetchWeatherData(city) {
       try {
-        const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${city.lat}&lon=${city.lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=zh_cn`;
-        const currentRes = await fetch(currentUrl);
-        const currentData = await currentRes.json();
-        
-        const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${city.lat}&lon=${city.lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=zh_cn`;
-        const forecastRes = await fetch(forecastUrl);
-        const forecastData = await forecastRes.json();
-        
-        const dailyMap = {};
-        const hourlyData = { relative_humidity_2m: [], surface_pressure: [], visibility: [] };
-        
-        for (const item of forecastData.list) {
-          const date = item.dt_txt.split(' ')[0];
-          if (!dailyMap[date]) {
-            dailyMap[date] = { temps: [], weatherCodes: [], precip: 0, windSpeeds: [], windDirs: [], humidities: [], pressures: [], visibilities: [] };
-          }
-          dailyMap[date].temps.push(item.main.temp);
-          dailyMap[date].weatherCodes.push(item.weather[0].id);
-          dailyMap[date].precip += (item.rain ? (item.rain['3h'] || 0) : 0);
-          dailyMap[date].windSpeeds.push(item.wind.speed);
-          dailyMap[date].windDirs.push(item.wind.deg);
-          dailyMap[date].humidities.push(item.main.humidity);
-          dailyMap[date].pressures.push(item.main.pressure);
-          dailyMap[date].visibilities.push(item.visibility);
-          hourlyData.relative_humidity_2m.push(item.main.humidity);
-          hourlyData.surface_pressure.push(item.main.pressure);
-          hourlyData.visibility.push(item.visibility);
+        const [current, forecast] = await Promise.all([
+          fetchQWeatherCurrent(city.lat, city.lon),
+          fetchQWeatherDaily(city.lat, city.lon)
+        ]);
+
+        if (!current || !forecast) {
+          console.error('获取天气数据失败:', city.name, 'current:', !!current, 'daily:', !!forecast);
+          return null;
         }
-        
-        const dates = Object.keys(dailyMap).sort();
-        const daily = {
-          time: dates,
-          weather_code: dates.map(d => {
-            const codes = dailyMap[d].weatherCodes;
-            const freq = {};
-            for (const c of codes) freq[c] = (freq[c] || 0) + 1;
-            return parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
-          }),
-          temperature_2m_max: dates.map(d => Math.round(Math.max(...dailyMap[d].temps) * 10) / 10),
-          temperature_2m_min: dates.map(d => Math.round(Math.min(...dailyMap[d].temps) * 10) / 10),
-          precipitation_sum: dates.map(d => Math.round(dailyMap[d].precip * 100) / 100),
-          precipitation_probability_max: dates.map(() => 0),
-          wind_speed_10m_max: dates.map(d => Math.round(Math.max(...dailyMap[d].windSpeeds) * 10) / 10),
-          wind_direction_10m_dominant: dates.map(d => Math.round(dailyMap[d].windDirs.reduce((a, b) => a + b, 0) / dailyMap[d].windDirs.length))
-        };
-        
-        const current = {
-          temperature_2m: currentData.main.temp,
-          relative_humidity_2m: currentData.main.humidity,
-          apparent_temperature: currentData.main.feels_like,
-          precipitation: currentData.rain ? (currentData.rain['1h'] || currentData.rain['3h'] || 0) : 0,
-          weather_code: currentData.weather[0].id,
-          wind_speed_10m: currentData.wind.speed,
-          wind_direction_10m: currentData.wind.deg,
-          surface_pressure: currentData.main.pressure,
-          visibility: currentData.visibility
-        };
-        
-        return { current, daily, hourly: hourlyData };
+
+        return { current, daily: forecast.daily, hourly: forecast.hourly };
       } catch (e) {
         console.error('获取天气数据失败:', city.name, e);
         return null;
@@ -3464,7 +3491,7 @@ const INFO_VALUE_SIZE = '13px';
         const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
         if (field === 'visibility') return (avg / 1000).toFixed(1) + ' km';
         if (field === 'surface_pressure') return Math.round(avg) + ' hPa';
-        return Math.round(avg) + '%';
+        return avg.toFixed(2);
       }
       
       let daysHtml = '';
@@ -3521,7 +3548,7 @@ const INFO_VALUE_SIZE = '13px';
             <div class="fc-body">
               <div class="fc-row">
                 <span class="fc-item">💧 湿度 ${avgHumidity}</span>
-                <span class="fc-item">💨 ${windDirText}风 ${wind}km/h</span>
+                <span class="fc-item">💨 ${windDirText}风 ${wind}m/s</span>
                 <span class="fc-item">🌧️ ${rain.toFixed(1)}mm ${getRainLevel(rain)}</span>
               </div>
               <div class="fc-row">
@@ -3562,11 +3589,11 @@ const INFO_VALUE_SIZE = '13px';
                 </div>
                 <div class="popup-grid-item">
                   <div class="label">💧 湿度</div>
-                  <div class="value">${humidity}%</div>
+                  <div class="value">${humidity}</div>
                 </div>
                 <div class="popup-grid-item">
                   <div class="label">💨 风速</div>
-                  <div class="value wind">${windSpeed} km/h</div>
+                  <div class="value wind">${windSpeed} m/s</div>
                   <div style="font-size:10px;color:#999">${windDirText}风</div>
                 </div>
                 <div class="popup-grid-item">
@@ -3654,7 +3681,7 @@ const INFO_VALUE_SIZE = '13px';
               { label: '最高温(°C)', data: highTemps, borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#e74c3c', borderWidth: 2, fill: false, yAxisID: 'y' },
               { label: '最低温(°C)', data: lowTemps, borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,0.1)', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3498db', borderWidth: 2, fill: false, yAxisID: 'y' },
               { label: '气压(hPa)', data: pressures, borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.1)', tension: 0.3, pointRadius: 3, pointBackgroundColor: '#e67e22', borderWidth: 1.5, borderDash: [5, 3], fill: false, yAxisID: 'y1' },
-              { label: '风速(km/h)', data: windSpeeds, borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.1)', tension: 0.3, pointRadius: 3, pointBackgroundColor: '#2ecc71', borderWidth: 1.5, borderDash: [3, 3], fill: false, yAxisID: 'y2' },
+              { label: '风速(m/s)', data: windSpeeds, borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.1)', tension: 0.3, pointRadius: 3, pointBackgroundColor: '#2ecc71', borderWidth: 1.5, borderDash: [3, 3], fill: false, yAxisID: 'y2' },
               { label: '降水量(mm)', data: rains, type: 'bar', backgroundColor: 'rgba(52,152,219,0.3)', borderColor: 'rgba(52,152,219,0.5)', borderWidth: 1, borderRadius: 2, yAxisID: 'y3', order: 5 }
             ]
           },
