@@ -2572,28 +2572,30 @@ const INFO_VALUE_SIZE = '13px';
       return '🌤️';
     }
 
-    // 获取天气实况（和风天气 v1 API）
+    // 获取天气实况（和风天气 v7 API）
     async function fetchQWeatherCurrent(lat, lon) {
       try {
-        const url = `https://${QWEATHER_API_HOST}/weather/v1/current/${lat.toFixed(2)}/${lon.toFixed(2)}?lang=zh`;
+        const url = `https://${QWEATHER_API_HOST}/v7/weather/now?location=${lon.toFixed(2)},${lat.toFixed(2)}&lang=zh`;
         const res = await fetch(url, {
-          headers: { 'Authorization': 'Bearer ' + QWEATHER_API_KEY }
+          headers: { 'X-QW-Api-Key': QWEATHER_API_KEY }
         });
         const data = await res.json();
-        if (data && data.temperature) {
+        if (data && data.code === '200' && data.now) {
+          const now = data.now;
           return {
-            temperature_2m: data.temperature.value,
-            relative_humidity_2m: data.humidity,
-            apparent_temperature: data.feelsLike.value,
-            precipitation: data.precipitation.amount.value,
-            weather_code: parseInt(data.condition.code),
-            weather_text: data.condition.text,
-            wind_speed_10m: data.wind.speed.value,
-            wind_direction_10m: data.wind.direction.degree,
-            surface_pressure: data.pressure.value,
-            visibility: data.visibility.value
+            temperature_2m: parseFloat(now.temp),
+            relative_humidity_2m: parseFloat(now.humidity),
+            apparent_temperature: parseFloat(now.feelsLike),
+            precipitation: parseFloat(now.precip) || 0,
+            weather_code: parseInt(now.icon),
+            weather_text: now.text,
+            wind_speed_10m: parseFloat(now.windSpeed),
+            wind_direction_10m: parseInt(now.wind360),
+            surface_pressure: parseFloat(now.pressure),
+            visibility: parseFloat(now.vis) * 1000
           };
         }
+        console.warn('和风天气实况返回异常:', data?.code);
         return null;
       } catch (e) {
         console.error('获取和风天气实况失败:', e);
@@ -2601,15 +2603,15 @@ const INFO_VALUE_SIZE = '13px';
       }
     }
 
-    // 获取7日天气预报（和风天气 v1 API）
+    // 获取7日天气预报（和风天气 v7 API）
     async function fetchQWeatherDaily(lat, lon) {
       try {
-        const url = `https://${QWEATHER_API_HOST}/weather/v1/daily/${lat.toFixed(2)}/${lon.toFixed(2)}?days=7&lang=zh`;
+        const url = `https://${QWEATHER_API_HOST}/v7/weather/7d?location=${lon.toFixed(2)},${lat.toFixed(2)}&lang=zh`;
         const res = await fetch(url, {
-          headers: { 'Authorization': 'Bearer ' + QWEATHER_API_KEY }
+          headers: { 'X-QW-Api-Key': QWEATHER_API_KEY }
         });
         const data = await res.json();
-        if (data && data.days && data.days.length > 0) {
+        if (data && data.code === '200' && data.daily && data.daily.length > 0) {
           const daily = {
             time: [],
             weather_code: [],
@@ -2622,23 +2624,19 @@ const INFO_VALUE_SIZE = '13px';
           };
           const hourly = { relative_humidity_2m: [], surface_pressure: [], visibility: [] };
 
-          for (const day of data.days) {
-            const date = day.forecastStartTime.split('T')[0];
-            daily.time.push(date);
-            daily.temperature_2m_max.push(Math.round(day.temperatureMax.value * 10) / 10);
-            daily.temperature_2m_min.push(Math.round(day.temperatureMin.value * 10) / 10);
-            daily.weather_code.push(parseInt(day.daytime.condition.code));
-            const precip = day.daytime.precipitation.amount.value + (day.nighttime.precipitation.amount.value || 0);
-            daily.precipitation_sum.push(Math.round(precip * 100) / 100);
-            const prob = Math.max(day.daytime.precipitation.probability || 0, day.nighttime.precipitation.probability || 0);
-            daily.precipitation_probability_max.push(Math.round(prob * 100));
-            const maxWind = Math.max(day.daytime.wind.speed.value, day.nighttime.wind.speed.value);
-            daily.wind_speed_10m_max.push(Math.round(maxWind * 10) / 10);
-            daily.wind_direction_10m_dominant.push(day.daytime.wind.direction.degree);
+          for (const day of data.daily) {
+            daily.time.push(day.fxDate);
+            daily.temperature_2m_max.push(parseFloat(day.tempMax));
+            daily.temperature_2m_min.push(parseFloat(day.tempMin));
+            daily.weather_code.push(parseInt(day.iconDay));
+            daily.precipitation_sum.push(parseFloat(day.precip) || 0);
+            daily.precipitation_probability_max.push(0);
+            daily.wind_speed_10m_max.push(parseFloat(day.windSpeedDay));
+            daily.wind_direction_10m_dominant.push(parseInt(day.wind360Day));
 
-            const avgHumidity = ((day.daytime.humidity || 0) + (day.nighttime.humidity || 0)) / 2;
-            const avgPressure = Math.round(((day.daytime.pressure?.value || 1013) + (day.nighttime.pressure?.value || 1013)) / 2);
-            const avgVis = Math.round(((day.daytime.visibility?.value || 10000) + (day.nighttime.visibility?.value || 10000)) / 2);
+            const avgHumidity = parseFloat(day.humidity);
+            const avgPressure = parseFloat(day.pressure) || 1013;
+            const avgVis = (parseFloat(day.vis) || 10) * 1000;
 
             for (let h = 0; h < 8; h++) {
               hourly.relative_humidity_2m.push(avgHumidity);
@@ -2649,6 +2647,7 @@ const INFO_VALUE_SIZE = '13px';
 
           return { daily, hourly };
         }
+        console.warn('和风天气预报返回异常:', data?.code);
         return null;
       } catch (e) {
         console.error('获取和风天气预报失败:', e);
@@ -3491,7 +3490,7 @@ const INFO_VALUE_SIZE = '13px';
         const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
         if (field === 'visibility') return (avg / 1000).toFixed(1) + ' km';
         if (field === 'surface_pressure') return Math.round(avg) + ' hPa';
-        return avg.toFixed(2);
+        return Math.round(avg) + '%';
       }
       
       let daysHtml = '';
@@ -3548,7 +3547,7 @@ const INFO_VALUE_SIZE = '13px';
             <div class="fc-body">
               <div class="fc-row">
                 <span class="fc-item">💧 湿度 ${avgHumidity}</span>
-                <span class="fc-item">💨 ${windDirText}风 ${wind}m/s</span>
+                <span class="fc-item">💨 ${windDirText}风 ${wind}km/h</span>
                 <span class="fc-item">🌧️ ${rain.toFixed(1)}mm ${getRainLevel(rain)}</span>
               </div>
               <div class="fc-row">
@@ -3589,11 +3588,11 @@ const INFO_VALUE_SIZE = '13px';
                 </div>
                 <div class="popup-grid-item">
                   <div class="label">💧 湿度</div>
-                  <div class="value">${humidity}</div>
+                  <div class="value">${humidity}%</div>
                 </div>
                 <div class="popup-grid-item">
                   <div class="label">💨 风速</div>
-                  <div class="value wind">${windSpeed} m/s</div>
+                  <div class="value wind">${windSpeed} km/h</div>
                   <div style="font-size:10px;color:#999">${windDirText}风</div>
                 </div>
                 <div class="popup-grid-item">
@@ -3681,7 +3680,7 @@ const INFO_VALUE_SIZE = '13px';
               { label: '最高温(°C)', data: highTemps, borderColor: '#e74c3c', backgroundColor: 'rgba(231,76,60,0.1)', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#e74c3c', borderWidth: 2, fill: false, yAxisID: 'y' },
               { label: '最低温(°C)', data: lowTemps, borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,0.1)', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3498db', borderWidth: 2, fill: false, yAxisID: 'y' },
               { label: '气压(hPa)', data: pressures, borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.1)', tension: 0.3, pointRadius: 3, pointBackgroundColor: '#e67e22', borderWidth: 1.5, borderDash: [5, 3], fill: false, yAxisID: 'y1' },
-              { label: '风速(m/s)', data: windSpeeds, borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.1)', tension: 0.3, pointRadius: 3, pointBackgroundColor: '#2ecc71', borderWidth: 1.5, borderDash: [3, 3], fill: false, yAxisID: 'y2' },
+              { label: '风速(km/h)', data: windSpeeds, borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.1)', tension: 0.3, pointRadius: 3, pointBackgroundColor: '#2ecc71', borderWidth: 1.5, borderDash: [3, 3], fill: false, yAxisID: 'y2' },
               { label: '降水量(mm)', data: rains, type: 'bar', backgroundColor: 'rgba(52,152,219,0.3)', borderColor: 'rgba(52,152,219,0.5)', borderWidth: 1, borderRadius: 2, yAxisID: 'y3', order: 5 }
             ]
           },
