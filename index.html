@@ -1951,10 +1951,10 @@ const INFO_VALUE_SIZE = '13px';
     <div class="map-extra-controls">
       <label><input type="checkbox" id="showForecastPath" checked> 📊 预测路径</label>
       <button class="user-forecast-btn" id="userForecastBtn">✏️ 我要预报</button>
-      <select class="typhoon-selector" id="typhoonSelector" style="display:none;margin-left:6px;padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.3);background:rgba(0,0,0,0.5);color:#fff;font-size:12px;font-family:inherit;outline:none;cursor:pointer;">
+      <select class="typhoon-selector" id="typhoonSelector" style="display:none;">
         <option value="">请选择台风</option>
       </select>
-      <button class="user-forecast-btn" id="addTyphoonBtn" style="display:none;margin-left:6px;font-size:11px;padding:4px 10px;" title="手动添加台风"> 添加台风</button>
+      <button class="user-forecast-btn" id="addTyphoonBtn" style="display:none;" title="手动添加台风"> 添加台风</button>
     </div>
     <div class="map-toggle-panel">
       <button class="map-toggle-btn" data-toggle="forecast">🌤️ 天气预报</button>
@@ -2733,6 +2733,7 @@ const INFO_VALUE_SIZE = '13px';
     window.userForecastLayer = null;        // 用户预报图层
     window.userForecastTimers = [];          // 预报时间序列: 6,12,18,24,48,72,96
     window.userForecastStep = 0;            // 当前预报步骤索引
+    window.selectedForecastTyphoon = null;   // 用户点击选择的预报起点台风
     window.weatherLayer = null;   // L.layerGroup 天气标记
     window.warningLayer = null;   // L.layerGroup 预警标记
     window.typhoonLayer = null;   // L.layerGroup 台风路径
@@ -2941,14 +2942,47 @@ const INFO_VALUE_SIZE = '13px';
               
               const typhoonIcon = L.marker([parseFloat(latest.lat), parseFloat(latest.lon)], {
                 icon: L.divIcon({
-                  html: `<div style="font-size:32px;line-height:1;text-shadow:0 0 10px rgba(0,0,0,0.5);cursor:pointer;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));" class="typhoon-click" data-stormid="${stormId}">🌀</div>`,
+                  html: `<div style="font-size:32px;line-height:1;text-shadow:0 0 10px rgba(0,0,0,0.5);cursor:pointer;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));" class="typhoon-click" data-stormid="${stormId}" data-lat="${latest.lat}" data-lon="${latest.lon}" data-windspeed="${latest.windSpeed}">🌀</div>`,
                   className: '',
                   iconSize: [36, 36],
                   iconAnchor: [18, 18]
                 })
               }).addTo(window.typhoonLayer);
               
-              typhoonIcon.on('click', function() {
+              typhoonIcon.on('click', function(e) {
+                // 预报模式下：点击台风图标作为预报起点
+                if (window.userForecastMode) {
+                  L.DomEvent.stopPropagation(e);
+                  const tLat = parseFloat(latest.lat);
+                  const tLon = parseFloat(latest.lon);
+                  const tWs = parseFloat(latest.windSpeed) || 0;
+                  const tColor = getTyphoonIntensityColor(tWs);
+                  const tName = tc.name;
+                  
+                  window.selectedForecastTyphoon = {
+                    lat: tLat,
+                    lon: tLon,
+                    windSpeed: tWs,
+                    color: tColor,
+                    name: tName
+                  };
+                  
+                  // 在台风图标上显示选中高亮
+                  if (window.userForecastLayer) {
+                    window.userForecastLayer.clearLayers();
+                  }
+                  L.circleMarker([tLat, tLon], {
+                    radius: 18,
+                    color: tColor,
+                    fillColor: tColor,
+                    fillOpacity: 0.25,
+                    weight: 3,
+                    opacity: 0.9
+                  }).addTo(window.userForecastLayer);
+                  
+                  alert(`已选择台风「${tName}」作为预报起点（${getTyphoonIntensityLabel(tWs)} ${tWs}m/s）\n请点击地图添加 6h 预报位置。`);
+                  return;
+                }
                 showTyphoonDetail(stormId);
               });
               
@@ -3197,134 +3231,43 @@ const INFO_VALUE_SIZE = '13px';
       const FORECAST_PERIODS = [6, 12, 18, 24, 48, 72, 96];
       if (!btn) return;
       
-      btn.addEventListener('click', async function() {
+      btn.addEventListener('click', function() {
         window.userForecastMode = !window.userForecastMode;
         this.classList.toggle('active');
         
-        const selector = document.getElementById('typhoonSelector');
         if (window.userForecastMode) {
-          // 显示台风选择器，填入可用台风
-          selector.style.display = 'inline-block';
-          selector.innerHTML = '<option value="">加载中...</option>';
-          
-          // 清空旧数据，重新获取
-          window.typhoonPositions = {};
-          window.cachedTyphoonData = [];
-          
-          try {
-            console.log('[台风预报] 开始获取台风列表...');
-            const stormList = await fetchTyphoonList();
-            console.log('[台风预报] 获取到台风列表:', stormList);
-            window.cachedTyphoonData = stormList;
-            
-            if (stormList.length === 0) {
-              console.warn('[台风预报] 台风列表为空，可能API返回无活跃台风');
-              selector.innerHTML = '<option value="">API返回无活跃台风</option>';
-              return;
-            }
-            
-            // 获取每个台风的位置
-            let successCount = 0;
-            for (const storm of stormList) {
-              try {
-                console.log('[台风预报] 获取台风位置:', storm.name, storm.stormId);
-                const trackData = await fetchTyphoonTrack(storm.stormId);
-                if (trackData && trackData.now) {
-                  const now = trackData.now;
-                  const lat = parseFloat(now.latitude);
-                  const lon = parseFloat(now.longitude);
-                  const windSpeed = parseFloat(now.maxWindSpeed);
-                  const color = getTyphoonIntensityColor(windSpeed);
-                  window.typhoonPositions[storm.name] = { lat, lon, color, windSpeed };
-                  successCount++;
-                  console.log('[台风预报] 成功获取位置:', storm.name, lat, lon, windSpeed);
-                } else {
-                  console.warn('[台风预报] 台风无当前位置数据:', storm.name, trackData);
-                }
-              } catch (err) {
-                console.error('[台风预报] 获取台风位置失败:', storm.name, err);
-              }
-            }
-            
-            console.log('[台风预报] 成功获取', successCount, '/', stormList.length, '个台风位置');
-          } catch (err) {
-            console.error('[台风预报] 获取台风列表失败:', err);
-            selector.innerHTML = '<option value="">API请求失败: ' + err.message + '</option>';
-            return;
-          }
-          
-          selector.innerHTML = '<option value="">请选择台风</option>';
-          if (window.typhoonPositions && Object.keys(window.typhoonPositions).length > 0) {
-            Object.keys(window.typhoonPositions).forEach(name => {
-              const opt = document.createElement('option');
-              opt.value = name;
-              const pos = window.typhoonPositions[name];
-              opt.textContent = name + ' (' + pos.windSpeed + 'm/s)';
-              selector.appendChild(opt);
-            });
-          } else {
-            selector.innerHTML = '<option value="">暂无可用台风（请检查API配置）</option>';
-          }
           window.userForecastData = [];
           window.userForecastStep = 0;
+          window.selectedForecastTyphoon = null;
           if (!window.userForecastLayer) {
             window.userForecastLayer = L.layerGroup().addTo(window.weatherMap);
+          } else {
+            window.userForecastLayer.clearLayers();
           }
           window.weatherMap.getContainer().style.cursor = 'crosshair';
-          alert('请先在右边下拉框中选择要预报的台风，然后在地图上依次点击以下时段的预报位置：\n' + FORECAST_PERIODS.map(p => p + 'h').join(' → '));
+          alert('请点击地图上的  台风图标选择要预报的台风，然后依次点击地图添加预报位置。');
         } else {
-          selector.style.display = 'none';
           window.weatherMap.getContainer().style.cursor = '';
           window.userForecastStep = 0;
           window.userForecastData = [];
-          // 清除用户预报图层
+          window.selectedForecastTyphoon = null;
           if (window.userForecastLayer) {
             window.userForecastLayer.clearLayers();
           }
         }
       });
 
-      // 手动添加台风按钮
-      const addBtn = document.getElementById('addTyphoonBtn');
-      if (addBtn) {
-        addBtn.addEventListener('click', function() {
-          const name = prompt('请输入台风名称（如：沙德尔）', '');
-          if (!name) return;
-          const lat = prompt('请输入台风当前纬度（如：20.5）', '');
-          if (!lat || isNaN(parseFloat(lat))) return;
-          const lon = prompt('请输入台风当前经度（如：120.5）', '');
-          if (!lon || isNaN(parseFloat(lon))) return;
-          const windSpeed = prompt('请输入台风当前最大风速(m/s)（如：25）', '20');
-          if (!windSpeed || isNaN(parseFloat(windSpeed))) return;
-          
-          const ws = parseFloat(windSpeed);
-          let color;
-          if (ws < 24.5) color = '#3498db';
-          else if (ws < 32.7) color = '#f1c40f';
-          else if (ws < 41.5) color = '#e67e22';
-          else if (ws < 51.0) color = '#e91e63';
-          else color = '#e74c3c';
-          
-          if (!window.typhoonPositions) window.typhoonPositions = {};
-          window.typhoonPositions[name] = { lat: parseFloat(lat), lon: parseFloat(lon), color, windSpeed: ws };
-          
-          const selector = document.getElementById('typhoonSelector');
-          if (selector) {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = name + ' (' + ws + 'm/s)';
-            selector.appendChild(opt);
-            selector.value = name;
-          }
-          alert('台风 ' + name + ' 已添加！');
-        });
-      }
-
       // 用户点击地图添加预报点
       window.weatherMap.on('click', async function(e) {
         if (!window.userForecastMode) return;
         if (window.userForecastStep >= FORECAST_PERIODS.length) {
           alert('所有时段的预报点已添加完毕！');
+          return;
+        }
+        
+        // 必须先点击台风图标选择起点
+        if (!window.selectedForecastTyphoon) {
+          alert('请先点击地图上的  台风图标选择要预报的台风！');
           return;
         }
         
@@ -3363,15 +3306,8 @@ const INFO_VALUE_SIZE = '13px';
         // 在地图上标注
         // 绘制连线
         if (window.userForecastData.length === 1) {
-          // 第一个预报点：从选中的台风位置画线到预报点
-          const selector = document.getElementById('typhoonSelector');
-          const selectedName = selector ? selector.value : '';
-          let currentTyphoon = null;
-          if (selectedName && window.typhoonPositions && window.typhoonPositions[selectedName]) {
-            currentTyphoon = window.typhoonPositions[selectedName];
-          } else {
-            currentTyphoon = window.currentTyphoonPosition || null;
-          }
+          // 第一个预报点：从用户点击的台风图标位置画线到预报点
+          const currentTyphoon = window.selectedForecastTyphoon;
           if (currentTyphoon) {
             L.polyline([
               [currentTyphoon.lat, currentTyphoon.lon],
@@ -3425,6 +3361,7 @@ const INFO_VALUE_SIZE = '13px';
               window.userForecastLayer.clearLayers();
               window.userForecastData = [];
               window.userForecastStep = 0;
+              window.selectedForecastTyphoon = null;
               window.userForecastMode = false;
               document.getElementById('userForecastBtn')?.classList.remove('active');
               window.weatherMap.getContainer().style.cursor = '';
