@@ -1951,7 +1951,7 @@ const INFO_VALUE_SIZE = '13px';
   <!-- 线上天气地图页面 -->
   <div class="online-weather-page" id="online-weather-page">
     <div class="online-weather-container">
-      <div class="online-weather-header">🌍 在线卫星云图</div>
+      <div class="online-weather-header">🌍 在线卫星云图/div>
       <div class="ow-satellite-card" style="background-image:url('卫星云图界面背景.jpg')">
         <a class="ow-satellite-link" href="https://zoom.earth/" target="_blank" rel="noopener">
           交互式静轨卫星云图拼图
@@ -1965,7 +1965,7 @@ const INFO_VALUE_SIZE = '13px';
         <iframe src="https://www.ventusky.com/" class="ow-iframe" allowfullscreen loading="lazy"></iframe>
       </div>
       <div class="ow-item">
-        <div class="ow-label">Windy · 全能天气图</div>
+        <div class="ow-label">Windy · 全能天气地图</div>
         <iframe src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=5&overlay=wind&product=ecmwf&level=surface&lat=23.5&lon=113.5&detailLat=23.13&detailLon=113.26&marker=true&message=true" class="ow-iframe" allowfullscreen loading="lazy"></iframe>
       </div>
       
@@ -1977,7 +1977,7 @@ const INFO_VALUE_SIZE = '13px';
     <div class="ta-container">
       <div class="ta-header">
         <h1 class="ta-title">🌀 台风路径动画自动生成</h1>
-        <p class="ta-subtitle">上传 ATCF b-deck 文件，自动生成台风路径动画视频</p>
+        <p class="ta-subtitle">上传 ATCF b-deck 文件，自动生成专业台风路径动画视频</p>
       </div>
       
       <div class="ta-content">
@@ -2021,7 +2021,7 @@ const INFO_VALUE_SIZE = '13px';
               <div class="ta-feature-text">根据等距圆柱投影地图建立经纬坐标系，并根据活跃区域平移和缩放</div>
             </div>
             <div class="ta-feature">
-              <div class="ta-feature-icon">🎵</div>
+              <div class="ta-feature-icon">🎞</div>
               <div class="ta-feature-text">内置图标和登陆素材，自动色度抠图，自动进行登陆检测与特效、ACE 统计条（自动计算）</div>
             </div>
           </div>
@@ -2380,9 +2380,6 @@ const INFO_VALUE_SIZE = '13px';
       { name: '三明', lat: 26.2672, lon: 117.6340 },
     ];
 
-    // ==================== OpenWeatherMap 配置 ====================
-    const OPENWEATHER_API_KEY = 'dc7353b67b6c40590ae08ca972bac622';
-
     // ==================== 和风天气 配置 ====================
     const QWEATHER_API_HOST = 'mp7p44w5mv.re.qweatherapi.com';
     const QWEATHER_API_KEY = '3a15479e1fd54c3cb6172d235dcb0d27';
@@ -2498,31 +2495,26 @@ const INFO_VALUE_SIZE = '13px';
       .addTo(layerGroup);
     }
 
-    // OWM天气代码转描述
+    // 和风天气代码转描述
     function getWeatherDesc(code) {
-      if (code >= 200 && code < 300) return '雷暴';
-      if (code >= 300 && code < 400) return '毛毛雨';
-      if (code >= 500 && code < 510) return '小雨';
-      if (code >= 510 && code < 520) return '中雨';
-      if (code >= 520 && code < 600) return '大雨';
-      if (code >= 600 && code < 610) return '小雪';
-      if (code >= 610 && code < 620) return '中雪';
-      if (code >= 620 && code < 700) return '大雪';
-      if (code === 701) return '薄雾';
-      if (code === 711) return '烟霾';
-      if (code === 721) return '霾';
-      if (code === 731 || code === 751) return '沙尘';
-      if (code === 741) return '雾';
-      if (code === 761) return '浮尘';
-      if (code === 762) return '火山灰';
-      if (code === 771) return '飑';
-      if (code === 781) return '龙卷风';
-      if (code === 800) return '晴';
-      if (code === 801) return '少云';
-      if (code === 802) return '多云';
-      if (code === 803) return '阴';
-      if (code === 804) return '阴';
-      return '未知';
+      const map = {
+        '100': '晴', '101': '多云', '102': '少云', '103': '晴间多云', '104': '阴',
+        '150': '晴', '151': '多云', '153': '晴间多云',
+        '200': '有雾', '201': '有雾', '202': '有雾', '203': '有雾',
+        '300': '阵雨', '301': '强阵雨', '302': '雷阵雨', '303': '强雷阵雨', '304': '雷阵雨伴有冰雹',
+        '305': '小雨', '306': '中雨', '307': '大雨', '308': '极端降雨', '309': '毛毛雨',
+        '310': '暴雨', '311': '大暴雨', '312': '特大暴雨', '313': '冻雨', '314': '小到中雨',
+        '315': '中到大雨', '316': '大到暴雨', '317': '暴雨到大暴雨', '318': '大暴雨到特大暴雨',
+        '399': '雨',
+        '400': '小雪', '401': '中雪', '402': '大雪', '403': '暴雪', '404': '雨夹雪',
+        '405': '雨雪天气', '406': '阵雨夹雪', '407': '阵雪', '408': '小到中雪',
+        '409': '中到大雪', '410': '大到暴雪', '499': '雪',
+        '500': '薄雾', '501': '霾', '502': '扬沙', '503': '浮尘', '504': '沙尘暴', '507': '强沙尘暴',
+        '508': '浓雾', '509': '强浓雾', '510': '大雾', '511': '特强浓雾',
+        '512': '中度霾', '513': '重度霾', '514': '严重霾', '515': '雾',
+        '900': '热', '901': '冷', '999': '未知'
+      };
+      return map[String(code)] || '未知';
     }
 
     // 台风类型中文名
@@ -2549,81 +2541,99 @@ const INFO_VALUE_SIZE = '13px';
       return '';
     }
 
-    // OWM天气代码转图标
+    // 和风天气代码转图标
     function getWeatherIcon(code) {
-      if (code >= 200 && code < 300) return '⛈️';
-      if (code >= 300 && code < 400) return '🌦️';
-      if (code >= 500 && code < 600) return '🌧️';
-      if (code >= 600 && code < 700) return '🌨️';
-      if (code >= 700 && code < 800) return '🌫️';
-      if (code === 800) return '☀️';
-      if (code === 801) return '🌤️';
-      if (code === 802) return '⛅';
-      if (code >= 803) return '☁️';
+      const c = String(code);
+      if (c === '100' || c === '150') return '☀️';
+      if (c === '101' || c === '151' || c === '104') return '☁️';
+      if (c === '102') return '🌤️';
+      if (c === '103' || c === '153') return '⛅';
+      if (c >= '200' && c <= '213') return '🌫️';
+      if (c === '302' || c === '303' || c === '304' || c === '308' || c === '310') return '️';
+      if (c === '300' || c === '301' || c === '305' || c === '309' || c === '314') return '🌦️';
+      if (c === '306' || c === '315') return '🌧️';
+      if (c === '307' || c === '316') return '🌧️';
+      if (c === '311' || c === '317') return '🌧️';
+      if (c === '312' || c === '318') return '🌧️';
+      if (c === '313') return '🌨️';
+      if (c === '399') return '🌧️';
+      if ((c >= '400' && c <= '410') || c === '499') return '❄️';
+      if (c === '500' || c === '508' || c === '509' || c === '510' || c === '511' || c === '515') return '🌫️';
+      if (c === '501' || c === '512' || c === '513' || c === '514') return '😷';
+      if (c === '502' || c === '503' || c === '504' || c === '507') return '🏜️';
+      if (c === '900') return '️';
+      if (c === '901') return '🥶';
       return '🌤️';
     }
 
-    // 获取天气数据（OpenWeatherMap）
+    // 获取天气数据（和风天气 v7 API）
     async function fetchWeatherData(city) {
       try {
-        const currentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${city.lat}&lon=${city.lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=zh_cn`;
-        const currentRes = await fetch(currentUrl);
+        // 实况天气
+        const currentUrl = `https://${QWEATHER_API_HOST}/v7/weather/now?location=${city.lon.toFixed(2)},${city.lat.toFixed(2)}`;
+        const currentRes = await fetch(currentUrl, {
+          headers: { 'X-QW-Api-Key': QWEATHER_API_KEY }
+        });
         const currentData = await currentRes.json();
-        
-        const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${city.lat}&lon=${city.lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=zh_cn`;
-        const forecastRes = await fetch(forecastUrl);
+
+        // 7天预报
+        const forecastUrl = `https://${QWEATHER_API_HOST}/v7/weather/7d?location=${city.lon.toFixed(2)},${city.lat.toFixed(2)}`;
+        const forecastRes = await fetch(forecastUrl, {
+          headers: { 'X-QW-Api-Key': QWEATHER_API_KEY }
+        });
         const forecastData = await forecastRes.json();
-        
-        const dailyMap = {};
-        const hourlyData = { relative_humidity_2m: [], surface_pressure: [], visibility: [] };
-        
-        for (const item of forecastData.list) {
-          const date = item.dt_txt.split(' ')[0];
-          if (!dailyMap[date]) {
-            dailyMap[date] = { temps: [], weatherCodes: [], precip: 0, windSpeeds: [], windDirs: [], humidities: [], pressures: [], visibilities: [] };
-          }
-          dailyMap[date].temps.push(item.main.temp);
-          dailyMap[date].weatherCodes.push(item.weather[0].id);
-          dailyMap[date].precip += (item.rain ? (item.rain['3h'] || 0) : 0);
-          dailyMap[date].windSpeeds.push(item.wind.speed);
-          dailyMap[date].windDirs.push(item.wind.deg);
-          dailyMap[date].humidities.push(item.main.humidity);
-          dailyMap[date].pressures.push(item.main.pressure);
-          dailyMap[date].visibilities.push(item.visibility);
-          hourlyData.relative_humidity_2m.push(item.main.humidity);
-          hourlyData.surface_pressure.push(item.main.pressure);
-          hourlyData.visibility.push(item.visibility);
+
+        if (currentData.code !== '200' || !currentData.now) {
+          console.warn('和风天气实况数据异常:', city.name, currentData.code);
+          return null;
         }
-        
-        const dates = Object.keys(dailyMap).sort();
-        const daily = {
-          time: dates,
-          weather_code: dates.map(d => {
-            const codes = dailyMap[d].weatherCodes;
-            const freq = {};
-            for (const c of codes) freq[c] = (freq[c] || 0) + 1;
-            return parseInt(Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0]);
-          }),
-          temperature_2m_max: dates.map(d => Math.round(Math.max(...dailyMap[d].temps) * 10) / 10),
-          temperature_2m_min: dates.map(d => Math.round(Math.min(...dailyMap[d].temps) * 10) / 10),
-          precipitation_sum: dates.map(d => Math.round(dailyMap[d].precip * 100) / 100),
-          precipitation_probability_max: dates.map(() => 0),
-          wind_speed_10m_max: dates.map(d => Math.round(Math.max(...dailyMap[d].windSpeeds) * 10) / 10),
-          wind_direction_10m_dominant: dates.map(d => Math.round(dailyMap[d].windDirs.reduce((a, b) => a + b, 0) / dailyMap[d].windDirs.length))
-        };
-        
+
+        const now = currentData.now;
+        // 和风天气v7返回的值为字符串，需要转换
         const current = {
-          temperature_2m: currentData.main.temp,
-          relative_humidity_2m: currentData.main.humidity,
-          apparent_temperature: currentData.main.feels_like,
-          precipitation: currentData.rain ? (currentData.rain['1h'] || currentData.rain['3h'] || 0) : 0,
-          weather_code: currentData.weather[0].id,
-          wind_speed_10m: currentData.wind.speed,
-          wind_direction_10m: currentData.wind.deg,
-          surface_pressure: currentData.main.pressure,
-          visibility: currentData.visibility
+          temperature_2m: parseFloat(now.temp),
+          relative_humidity_2m: parseFloat(now.humidity),
+          apparent_temperature: parseFloat(now.feelsLike),
+          precipitation: parseFloat(now.precip) || 0,
+          weather_code: now.icon,
+          wind_speed_10m: parseFloat(now.windSpeed),
+          wind_direction_10m: parseFloat(now.wind360),
+          surface_pressure: parseFloat(now.pressure),
+          visibility: parseFloat(now.vis) * 1000  // 和风天气能见度单位为km，转为m
         };
-        
+
+        // 处理7天预报数据
+        const daily = {
+          time: [],
+          weather_code: [],
+          temperature_2m_max: [],
+          temperature_2m_min: [],
+          precipitation_sum: [],
+          precipitation_probability_max: [],
+          wind_speed_10m_max: [],
+          wind_direction_10m_dominant: []
+        };
+
+        const hourlyData = { relative_humidity_2m: [], surface_pressure: [], visibility: [] };
+
+        if (forecastData.code === '200' && forecastData.daily) {
+          for (const day of forecastData.daily) {
+            daily.time.push(day.fxDate);
+            daily.weather_code.push(day.iconDay);
+            daily.temperature_2m_max.push(parseFloat(day.tempMax));
+            daily.temperature_2m_min.push(parseFloat(day.tempMin));
+            daily.precipitation_sum.push(parseFloat(day.precip) || 0);
+            daily.precipitation_probability_max.push(parseFloat(day.precipProb) || 0);
+            daily.wind_speed_10m_max.push(parseFloat(day.windSpeedDay) || parseFloat(day.windSpeedNight) || 0);
+            daily.wind_direction_10m_dominant.push(parseFloat(day.wind360Day) || 0);
+
+            // 为弹窗中的日均值计算提供数据（每天一个样本）
+            hourlyData.relative_humidity_2m.push(parseFloat(day.humidity) || 0);
+            hourlyData.surface_pressure.push(parseFloat(now.pressure) || 0);
+            hourlyData.visibility.push(parseFloat(now.vis) * 1000 || 0);
+          }
+        }
+
         return { current, daily, hourly: hourlyData };
       } catch (e) {
         console.error('获取天气数据失败:', city.name, e);
@@ -3501,15 +3511,13 @@ const INFO_VALUE_SIZE = '13px';
       
       function getDailyAvg(hourlyData, field, dayIndex) {
         if (!hourlyData || !hourlyData[field]) return '—';
-        const start = dayIndex * 8;
-        const end = Math.min(start + 8, hourlyData[field].length);
-        if (start >= end) return '—';
-        const vals = hourlyData[field].slice(start, end).filter(v => v !== null);
-        if (vals.length === 0) return '—';
-        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-        if (field === 'visibility') return (avg / 1000).toFixed(1) + ' km';
-        if (field === 'surface_pressure') return Math.round(avg) + ' hPa';
-        return Math.round(avg) + '%';
+        // 和风天气每天一个数据点，直接用索引取值
+        if (dayIndex >= hourlyData[field].length) return '—';
+        const val = hourlyData[field][dayIndex];
+        if (val === null || val === undefined) return '—';
+        if (field === 'visibility') return (val / 1000).toFixed(1) + ' km';
+        if (field === 'surface_pressure') return Math.round(val) + ' hPa';
+        return Math.round(val) + '%';
       }
       
       let daysHtml = '';
@@ -3521,8 +3529,8 @@ const INFO_VALUE_SIZE = '13px';
         const low = Math.round(daily.temperature_2m_min[i]);
         const rain = daily.precipitation_sum ? daily.precipitation_sum[i] : 0;
         let dayDesc = getWeatherDesc(daily.weather_code[i]);
-        const wc = daily.weather_code[i];
-        if (wc >= 300 && wc < 600) {
+        const wc = parseInt(daily.weather_code[i]);
+        if (wc >= 300 && wc <= 399) {
           dayDesc = getRainLevel(rain);
         }
         const wind = daily.wind_speed_10m_max ? Math.round(daily.wind_speed_10m_max[i]) : 0;
